@@ -107,6 +107,21 @@
     details .inner { padding: 12px 16px; overflow-x: auto; }
     .traits li { margin: 6px 0; color: var(--muted); font-size: 0.9rem; }
     .table-scroll { overflow-x: auto; }
+    .btn-copy {
+      background: var(--accent); color: #fff; border: none; padding: 10px 18px;
+      border-radius: 6px; font-size: 0.85rem; font-weight: 600; cursor: pointer;
+      margin: 8px 8px 8px 0;
+    }
+    .btn-copy:hover { filter: brightness(1.1); }
+    .btn-copy.copied { background: var(--success); }
+    #aiPromptText {
+      width: 100%; min-height: 420px; font-family: ui-monospace, "SF Mono", Menlo, monospace;
+      font-size: 0.75rem; line-height: 1.45; background: var(--code-bg); color: #c5cad3;
+      border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; resize: vertical;
+    }
+    .prompt-steps { margin: 0; padding-left: 20px; color: var(--muted); font-size: 0.9rem; }
+    .prompt-steps li { margin: 8px 0; }
+    .badge.align { background: rgba(61,153,112,0.2); color: #6dd4a8; }
     @media print {
       body { background: #fff; color: #000; }
       .controls { display: none; }
@@ -129,6 +144,7 @@
       <div>
         <label for="viewSelect">View</label><br />
         <select id="viewSelect">
+          <option value="prompt">AI Show-Tech Analysis Prompt</option>
           <option value="deployment">Deployment Profiles</option>
           <option value="modes">Classic vs AI Matrix</option>
           <option value="compare">BP Comparison</option>
@@ -145,19 +161,62 @@
       <span class="pill">AI: Design → RF Profile → AI RF Profile</span>
     </div>
 
-    <div class="callout">
-      <strong>How to read impact columns</strong>
-      Each setting lists <strong>positive</strong> and <strong>negative</strong> impacts for the <em>recommended change direction</em> in that deployment profile.
-      Tradeoffs are intentional — no single value is optimal for every environment.
+    <div id="guideCallouts">
+      <div class="callout">
+        <strong>How to read impact columns</strong>
+        Each setting lists <strong>positive</strong> and <strong>negative</strong> impacts for the <em>recommended change direction</em> in that deployment profile.
+        Tradeoffs are intentional — no single value is optimal for every environment.
+      </div>
+      <div class="callout">
+        <strong>Architecture note</strong>
+        A single WLC runs either legacy RRM or AI-Enhanced RRM — not both. With AI RRM, Catalyst Center becomes the RF Group Leader (WLC = Remote-Member). Requires Device Controllability, AI Analytics cloud, and at least one of FRA/DCA/TPC/DBS in the AI RF Profile.
+      </div>
     </div>
 
-    <div class="callout">
-      <strong>Architecture note</strong>
-      A single WLC runs either legacy RRM or AI-Enhanced RRM — not both. With AI RRM, Catalyst Center becomes the RF Group Leader (WLC = Remote-Member). Requires Device Controllability, AI Analytics cloud, and at least one of FRA/DCA/TPC/DBS in the AI RF Profile.
+    <!-- AI PROMPT -->
+    <div id="sec-prompt" class="section active">
+      <h2>AI Show-Tech Analysis Prompt</h2>
+      <p>Copy the prompt below, paste it into your AI assistant (Cursor, ChatGPT, etc.), then attach or paste the output of <code>show tech-support wireless</code> (or key sections listed in the prompt).</p>
+
+      <div class="card">
+        <div class="card-header">How to use</div>
+        <div class="card-body">
+          <ol class="prompt-steps">
+            <li>On the WLC: <code>show tech-support wireless</code> → save to a text file (or capture PuTTY log).</li>
+            <li>Click <strong>Copy prompt</strong> below.</li>
+            <li>Paste the prompt into your AI tool, then paste the show-tech content <em>after</em> the prompt (or attach the file).</li>
+            <li>Optionally add site context: “Manhattan floor is multi-tenant; Atlanta is owned 11th floor.”</li>
+            <li>Cross-check the AI output against tabs in this guide (Deployment Profiles, Classic vs AI Matrix, CLI).</li>
+          </ol>
+          <p style="margin-top:12px;font-size:0.82rem;"><span class="pill warn">Security</span> Redact PSKs, RADIUS secrets, and certificates before pasting show-tech into external AI tools.</p>
+        </div>
+      </div>
+
+      <button type="button" class="btn-copy" id="copyPromptBtn">Copy prompt</button>
+      <span class="pill ok" id="copyPromptStatus" style="display:none;">Copied to clipboard</span>
+
+      <textarea id="aiPromptText" readonly spellcheck="false"></textarea>
+
+      <h3>Key show-tech sections the AI should parse</h3>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>Section</th><th>Why</th></tr></thead>
+          <tbody>
+            <tr><td><code>show version</code> / <code>show wireless summary</code></td><td>Platform, IOS-XE, license, CatC assurance URL</td></tr>
+            <tr><td><code>show running-config</code> (RRM + RF profile stanzas)</td><td>Foreign AP, ED-RRM, profile tx-power max, client-network-preference</td></tr>
+            <tr><td><code>show ap tag summary</code></td><td>Sites, RF tags, policy tags per AP</td></tr>
+            <tr><td><code>show ap dot11 {24|5|6}ghz group</code></td><td>Classic vs AI (Auto-Leader vs Remote-Member)</td></tr>
+            <tr><td><code>show ap dot11 {band} channel</code> / <code>txpower</code></td><td>Operational DCA/TPC/ED-RRM</td></tr>
+            <tr><td><code>show ap dot11 {band} summary</code></td><td>Per-AP power, width, channel outliers</td></tr>
+            <tr><td><code>show ap fra</code></td><td>FRA state, client-aware FRA guardrails</td></tr>
+            <tr><td><code>show ap auto-rf dot11 {band}</code></td><td>CHD, coverage profile, neighbor CCI</td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <!-- DEPLOYMENT PROFILES -->
-    <div id="sec-deployment" class="section active">
+    <div id="sec-deployment" class="section">
       <div id="profileContent"></div>
       <h2>Four-way deployment comparison</h2>
       <div class="table-scroll">
@@ -174,8 +233,6 @@
           <tbody></tbody>
         </table>
       </div>
-    </div>
-
     </div>
 
     <!-- MODE MATRIX -->
@@ -323,6 +380,93 @@
   </div>
 
   <script>
+    const AI_ANALYSIS_PROMPT = `You are a senior Cisco wireless engineer analyzing a Catalyst 9800 show-tech-support wireless capture. Produce a site-specific RRM recommendations document using the framework below (aligned to Cisco C9800 RRM BP, WLC RF Management BP, CX Large Public Networks Design Guide, and Catalyst Center AI-Enhanced RRM Deployment Guide).
+
+## SECURITY
+- Do NOT reproduce passwords, PSKs, RADIUS/TACACS secrets, private keys, or tokens from the show-tech.
+- Redact any credentials you encounter; refer to them only as "[REDACTED]".
+
+## INPUT
+The user will provide show tech-support wireless output below this prompt. Parse running-config and operational show commands.
+
+## STEP 1 — Determine RRM mode
+From show ap dot11 5ghz group (and wireless rf-group summary):
+- Classic: Group Role = Auto-Leader, leader = WLC hostname/IP
+- AI-Enhanced: Group Role = Remote-Member, Catalyst Center = leader
+State which mode applies and where each class of change must be made (WLC vs Catalyst Center AI RF Profile). Use this split:
+- AI services (if enrolled): DCA, TPC, FRA, DBS → Catalyst Center AI RF Profile
+- Edge (both modes): CHD, ED-RRM, DFS, optimized roaming → WLC
+- WLAN always: band select, client steering, 802.11k/v
+- RF profile (both modes): RxSOP, data rates, client-network-preference, tx-power min/max caps, per-profile channel foreign
+
+## STEP 2 — Inventory
+Extract: hostname, model, IOS-XE version, license tier, Catalyst Center/network-assurance URL, AP count/model, FlexConnect vs local, countries, RF group name/leader, RF tags per site (show ap tag summary), single vs multiple geographies on one WLC.
+
+## STEP 3 — Map sites to deployment archetype
+Assign each site one primary profile (note if mixed):
+1. Carpeted Office — Enterprise Campus (owned building, low foreign RF)
+2. Carpeted Office — Multi-Tenant Building (shared high-rise, high foreign RF)
+3. Downtown — New York City (ultra-dense, foreign AP avoidance OFF, 20 MHz, ED-RRM off)
+4. Downtown — Atlanta (tower RF, foreign AP off, ED-RRM low only, 20–40 MHz)
+
+## STEP 4 — Analyze these RRM areas (current vs recommended per site)
+
+### DCA
+Interval (target 4–8 hr, not 10 min), anchor time, sensitivity (Medium campus / Low multi-tenant & NYC), Avoid Foreign AP (global AND per RF profile — disable multi-tenant/NYC), channel width/DBS (20 MHz dense / 40 MHz owned), aggressive on startup, 6 GHz DCA interval alignment.
+
+### TPC
+Mode, interval (align with DCA — prefer 3600s vs 600s), threshold, min/max (global AND RF profile max — flag max 30 dBm), manual power overrides (APs without TPC asterisk), power outliers.
+
+### CHD
+Enabled/disabled, data/voice RSSI threshold, min failed clients before power increase (3 default; 5–8 dense), exception %. Flag if CHD likely caused high power.
+
+### ED-RRM / CleanAir
+Enabled, sensitivity, rogue contribution. Recommend off for multi-tenant/NYC; Low only for Atlanta/enterprise if needed.
+
+### Client Network Preference & FRA guardrails
+client-network-preference (default / 5ghz / 6ghz), client-aware-fra client-select % (50% default — raise before 2.4→5G in dense RF), client-reset count (clients before FRA band reset), client-reset-util.
+
+### Adjunct (not RRM algorithm but affects outcomes)
+Band select per WLAN, client steering, mandatory data rates, RxSOP, SSID count, RF group isolation per geography.
+
+## STEP 5 — Operational outliers
+From show ap dot11 {band} summary: list APs with abnormal tx power, width mismatch, admin-down radios, CHD-driven max power. Prioritize fixes.
+
+## STEP 6 — Deliverable format
+
+### Executive summary (3–5 bullets)
+
+### Prioritized findings table
+Columns: Priority (Critical/High/Medium/Low), Finding, Evidence (command/output), Impact
+
+### Global RRM — current vs recommended (2.4 / 5 / 6 GHz)
+
+### Per-site recommendations
+For each site: archetype, AP count, key settings table with Positive impact and Negative impact/tradeoff for each recommended change.
+
+### RF tag / profile strategy
+If one RF profile serves multiple archetypes, recommend split profiles and RF groups per geography.
+
+### Phased CLI plan
+Phase 1 (immediate, low risk), Phase 2 (profiles/tags), Phase 3 (site tuning). Include both global and RF-profile stanzas (e.g. no channel foreign under profile, tx-power max).
+
+### AI-Enhanced RRM path (if applicable or future)
+Busy hour, sensitivity, which services to enable, observation period, Simulator note.
+
+### Post-change validation checklist
+Commands: show ap dot11 5ghz group, channel, summary, tag summary, auto-rf coverage; Catalyst Center Assurance if AI.
+
+## RULES
+- Every recommendation must state positive impact AND negative tradeoff.
+- Do not recommend Avoid Foreign AP ON for multi-tenant or NYC.
+- Flag single RF group across distant geographies.
+- Flag profile-level foreign AP and tx-power max 30 when global caps look fine.
+- If classic mode: WLC CLI/GUI. If AI mode: say which knob moves to AI RF Profile vs stays on WLC edge.
+
+---
+PASTE SHOW TECH-SUPPORT WIRELESS OUTPUT BELOW THIS LINE:
+`;
+
     const PROFILES = [
       {
         id: "enterprise-campus",
@@ -704,15 +848,41 @@
       renderAi();
       renderProfile("enterprise-campus");
 
+      document.getElementById("aiPromptText").value = AI_ANALYSIS_PROMPT;
+
+      document.getElementById("copyPromptBtn").addEventListener("click", async () => {
+        const btn = document.getElementById("copyPromptBtn");
+        const status = document.getElementById("copyPromptStatus");
+        try {
+          await navigator.clipboard.writeText(AI_ANALYSIS_PROMPT);
+          btn.classList.add("copied");
+          btn.textContent = "Copied!";
+          status.style.display = "inline-block";
+          setTimeout(() => {
+            btn.classList.remove("copied");
+            btn.textContent = "Copy prompt";
+            status.style.display = "none";
+          }, 2500);
+        } catch (e) {
+          document.getElementById("aiPromptText").select();
+          document.execCommand("copy");
+          btn.textContent = "Copied (fallback)";
+        }
+      });
+
       document.getElementById("viewSelect").addEventListener("change", e => {
         document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
         const v = e.target.value;
         document.getElementById("sec-" + v).classList.add("active");
         document.getElementById("deploymentControl").style.display =
           (v === "deployment") ? "block" : "none";
+        document.getElementById("guideCallouts").style.display =
+          (v === "prompt") ? "none" : "block";
       });
 
       depSel.addEventListener("change", e => renderProfile(e.target.value));
+
+      document.getElementById("guideCallouts").style.display = "none";
     }
 
     init();

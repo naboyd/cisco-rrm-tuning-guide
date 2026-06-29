@@ -22,6 +22,7 @@ python3 -m http.server 8080
 
 | View | Purpose |
 |------|---------|
+| **AI Show-Tech Analysis Prompt** | Copy-paste prompt for analyzing `show tech-support wireless` with the same framework as this guide |
 | **Deployment Profiles** | Tailored settings for Enterprise Campus, Multi-Tenant, NYC Downtown, Atlanta Downtown — with positive/negative impact per change |
 | **Classic vs AI Matrix** | Which settings are WLC-only, AI RF Profile, edge (CHD/ED-RRM), or WLAN |
 | **BP Comparison** | C9800 defaults vs Cisco published guidance |
@@ -38,6 +39,13 @@ python3 -m http.server 8080
 5. Open **CLI Reference** for copy-paste commands for your profile.
 
 Before changing production RRM: export current config, schedule a maintenance window for RF profile pushes, and validate with `show ap dot11 {band} summary` after changes.
+
+## AI show-tech analysis
+
+1. Open **AI Show-Tech Analysis Prompt** (default view).
+2. Click **Copy prompt** and paste into your AI assistant.
+3. Append or attach `show tech-support wireless` output below the prompt line.
+4. Redact PSKs and secrets before using external AI tools.
 
 ## Classic vs AI-Enhanced RRM
 
