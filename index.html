@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cisco Wireless RRM Tuning Guide — 9800 &amp; Catalyst Center AI RRM</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --border: #2d3348;
+      --text: #e8eaed;
+      --muted: #9aa0b0;
+      --accent: #4a9eff;
+      --success: #3d9970;
+      --warning: #c9a227;
+      --danger: #c44;
+      --code-bg: #12151c;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+    .wrap { max-width: 1200px; margin: 0 auto; padding: 24px 20px 64px; }
+    h1 { font-size: 1.75rem; margin: 0 0 8px; font-weight: 600; }
+    h2 { font-size: 1.35rem; margin: 32px 0 12px; font-weight: 600; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+    h3 { font-size: 1.1rem; margin: 24px 0 10px; font-weight: 600; }
+    p { margin: 0 0 12px; color: var(--muted); }
+    .subtitle { font-size: 0.9rem; color: var(--muted); margin-bottom: 20px; }
+  .controls {
+      display: flex; flex-wrap: wrap; gap: 12px; align-items: center;
+      margin: 20px 0; padding: 16px; background: var(--surface);
+      border: 1px solid var(--border); border-radius: 8px;
+    }
+    label { font-size: 0.85rem; color: var(--muted); }
+    select {
+      background: var(--code-bg); color: var(--text); border: 1px solid var(--border);
+      padding: 8px 12px; border-radius: 6px; font-size: 0.9rem; min-width: 220px;
+    }
+    .pill {
+      display: inline-block; font-size: 0.75rem; padding: 4px 10px;
+      border-radius: 999px; border: 1px solid var(--border); color: var(--muted);
+    }
+    .pill.info { border-color: var(--accent); color: var(--accent); }
+    .pill.warn { border-color: var(--warning); color: var(--warning); }
+    .pill.ok { border-color: var(--success); color: var(--success); }
+    .callout {
+      padding: 14px 16px; border-radius: 8px; margin: 16px 0;
+      border-left: 3px solid var(--accent); background: var(--surface);
+      font-size: 0.9rem;
+    }
+    .callout strong { display: block; margin-bottom: 6px; color: var(--text); }
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 8px; margin: 20px 0; overflow: hidden;
+    }
+    .card-header {
+      padding: 14px 16px; font-weight: 600; font-size: 0.95rem;
+      border-bottom: 1px solid var(--border); background: #151820;
+    }
+    .card-body { padding: 16px; }
+    .section { display: none; }
+    .section.active { display: block; }
+    table {
+      width: 100%; border-collapse: collapse; font-size: 0.82rem; margin: 12px 0;
+    }
+    th, td {
+      border: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top;
+    }
+    th { background: #151820; font-weight: 600; position: sticky; top: 0; z-index: 1; }
+    tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+    .loc { font-size: 0.75rem; color: var(--muted); display: block; margin-top: 2px; }
+    .badge {
+      display: inline-block; font-size: 0.7rem; padding: 2px 8px; border-radius: 4px;
+      white-space: nowrap;
+    }
+    .badge.tier-ai { background: rgba(74,158,255,0.2); color: var(--accent); }
+    .badge.tier-edge { background: rgba(201,162,39,0.2); color: #e8c84a; }
+    .badge.tier-profile { background: rgba(150,120,220,0.2); color: #c9b8ff; }
+    .badge.tier-wlan { background: rgba(120,140,160,0.25); color: #b8c4d4; }
+    .badge.tier-both { background: rgba(61,153,112,0.2); color: #6dd4a8; }
+    .badge.caution { background: rgba(201,162,39,0.2); color: #e8c84a; }
+    .badge.conflict { background: rgba(204,68,68,0.2); color: #f08080; }
+    .badge.pos { background: rgba(61,153,112,0.15); color: #6dd4a8; }
+    .badge.neg { background: rgba(204,68,68,0.15); color: #f08080; }
+    td.impact-pos { color: #6dd4a8; font-size: 0.8rem; }
+    td.impact-neg { color: #f08080; font-size: 0.8rem; }
+    code, .cli {
+      font-family: ui-monospace, "SF Mono", Menlo, monospace;
+      font-size: 0.8rem; background: var(--code-bg); padding: 2px 6px; border-radius: 4px;
+    }
+    .cli-block {
+      display: block; padding: 8px 12px; margin: 4px 0; border-radius: 4px;
+      background: var(--code-bg); border: 1px solid var(--border);
+    }
+    details { margin: 12px 0; border: 1px solid var(--border); border-radius: 8px; }
+    summary {
+      padding: 12px 16px; cursor: pointer; font-weight: 600; background: #151820;
+      border-radius: 8px; list-style: none;
+    }
+    summary::-webkit-details-marker { display: none; }
+    details[open] summary { border-radius: 8px 8px 0 0; border-bottom: 1px solid var(--border); }
+    details .inner { padding: 12px 16px; overflow-x: auto; }
+    .traits li { margin: 6px 0; color: var(--muted); font-size: 0.9rem; }
+    .table-scroll { overflow-x: auto; }
+    @media print {
+      body { background: #fff; color: #000; }
+      .controls { display: none; }
+      .section { display: block !important; }
+      th { background: #eee; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Cisco Wireless RRM Tuning Guide</h1>
+    <p class="subtitle">
+      Catalyst 9800 classic RRM and Catalyst Center 3.x AI-Enhanced RRM — settings, impacts, and Cisco best-practice alignment.
+    </p>
+    <p class="subtitle" style="font-size:0.8rem;">
+      Sources: C9800 Config Guide BP (17.3.x) · WLC RF Management BP · CX Large Public Networks · AI-Enhanced RRM Deployment Guide
+    </p>
+
+    <div class="controls">
+      <div>
+        <label for="viewSelect">View</label><br />
+        <select id="viewSelect">
+          <option value="deployment">Deployment Profiles</option>
+          <option value="modes">Classic vs AI Matrix</option>
+          <option value="compare">BP Comparison</option>
+          <option value="9800">9800 Classic RRM</option>
+          <option value="ai">Catalyst Center AI RRM</option>
+          <option value="cli">CLI Reference</option>
+        </select>
+      </div>
+      <div id="deploymentControl">
+        <label for="deploymentSelect">Deployment</label><br />
+        <select id="deploymentSelect"></select>
+      </div>
+      <span class="pill info">GUI: Configuration → Radio Configurations → RRM</span>
+      <span class="pill">AI: Design → RF Profile → AI RF Profile</span>
+    </div>
+
+    <div class="callout">
+      <strong>How to read impact columns</strong>
+      Each setting lists <strong>positive</strong> and <strong>negative</strong> impacts for the <em>recommended change direction</em> in that deployment profile.
+      Tradeoffs are intentional — no single value is optimal for every environment.
+    </div>
+
+    <div class="callout">
+      <strong>Architecture note</strong>
+      A single WLC runs either legacy RRM or AI-Enhanced RRM — not both. With AI RRM, Catalyst Center becomes the RF Group Leader (WLC = Remote-Member). Requires Device Controllability, AI Analytics cloud, and at least one of FRA/DCA/TPC/DBS in the AI RF Profile.
+    </div>
+
+    <!-- DEPLOYMENT PROFILES -->
+    <div id="sec-deployment" class="section active">
+      <div id="profileContent"></div>
+      <h2>Four-way deployment comparison</h2>
+      <div class="table-scroll">
+        <table id="fourWayTable">
+          <thead>
+            <tr>
+              <th>Setting</th>
+              <th>Enterprise Campus</th>
+              <th>Multi-Tenant</th>
+              <th>NYC Downtown</th>
+              <th>Atlanta Downtown</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- MODE MATRIX -->
+    <div id="sec-modes" class="section">
+      <h2>Classic WLC vs Catalyst Center AI-Enhanced RRM — Control Matrix</h2>
+      <p>Use this matrix to decide <strong>where to make a change</strong> and whether it will take effect. Cisco splits RRM into a cloud <em>Resource Analytics Engine</em> (DCA/TPC/FRA/DBS) and a local <em>Edge Compute Engine</em> (CHD, ED-RRM, DFS, roaming).</p>
+
+      <div class="callout">
+        <strong>How to tell which mode you are in (run on WLC)</strong>
+        <code>show ap dot11 5ghz group</code> — Classic: <code>Group Role: Auto-Leader</code>, leader = your WLC hostname/IP.
+        AI: <code>Group Role: Remote-Member</code>, leader = Catalyst Center (often shows as a DNA Center / CatC RRM leader name).
+        Also: <code>show wireless rf-group summary</code> and Catalyst Center → Assurance → AI RRM Control Center (if enrolled).
+      </div>
+
+      <div class="callout warn" style="border-left-color: var(--warning);">
+        <strong>Rules of thumb</strong>
+        (1) One RRM algorithm per WLC — all sites on that controller share classic <em>or</em> AI, not both.
+        (2) If an AI RF Profile service (DCA/TPC/FRA/DBS) is enabled, tune it in <strong>Catalyst Center → AI RF Profile</strong>; WLC global RRM CLI for that service is effectively overridden.
+        (3) Edge settings (CHD, ED-RRM) stay on the WLC even in AI mode — but Insights may recommend changes in CatC.
+        (4) WLAN/client settings (band select, steering) are <strong>always WLC</strong>, never AI RRM.
+        (5) Match AI RF Profile schema to WLC RF profile (e.g. DBS max width) or APs may not get the profile on failover.
+      </div>
+
+      <h3>Setting ownership matrix</h3>
+      <div class="table-scroll">
+        <table id="modeMatrixTable">
+          <thead>
+            <tr>
+              <th>Setting / feature</th>
+              <th>Tier</th>
+              <th>Classic (WLC only)</th>
+              <th>AI-Enhanced RRM</th>
+              <th>Where to configure</th>
+              <th>How to verify it applied</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <h3>Decision flow</h3>
+      <div class="card">
+        <div class="card-body" style="font-size:0.88rem;color:var(--muted);">
+          <ol style="margin:0;padding-left:20px;line-height:1.7;">
+            <li>Run <code>show ap dot11 5ghz group</code> → <strong>Auto-Leader on WLC</strong> = classic; <strong>Remote-Member</strong> = AI enrolled.</li>
+            <li>Is the change DCA, TPC, FRA, or DBS? → If AI enrolled, use <strong>AI RF Profile</strong> (enable that service + busy hour/sensitivity). WLC <code>ap dot11 … rrm channel/tpc</code> changes for that service will not drive behavior.</li>
+            <li>Is the change CHD, ED-RRM, CleanAir event, or DFS? → <strong>WLC</strong> (edge engine), even in AI mode. Check CatC Insights for recommendations only.</li>
+            <li>Is the change band select, client steering, 802.11k/v, SSID, flex? → <strong>WLC / WLAN</strong> always.</li>
+            <li>Is the change RxSOP, data rates, client-network-preference, tx-power min/max caps? → <strong>RF Profile</strong>: WLC RF profile (classic) or AI RF Profile push (AI). Keep schemas aligned.</li>
+            <li>After AI profile push, confirm <code>show ap tag summary</code> shows AI-assigned RF tag and <code>show ap dot11 5ghz summary</code> reflects expected width/power.</li>
+          </ol>
+        </div>
+      </div>
+
+      <h3>Operational commands</h3>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>Question</th><th>Command / UI</th><th>Classic expected</th><th>AI expected</th></tr></thead>
+          <tbody>
+            <tr><td>Who is RF leader?</td><td><code>show ap dot11 5ghz group</code></td><td>WLC = Auto-Leader</td><td>WLC = Remote-Member; CatC = leader</td></tr>
+            <tr><td>Is cloud AI connected?</td><td><code>show cloud-services summary</code></td><td>N/A or disconnected</td><td>Connected services listed</td></tr>
+            <tr><td>Which RF tag on APs?</td><td><code>show ap tag summary</code></td><td>Your RF tag name</td><td>AI RF Profile / pushed tag</td></tr>
+            <tr><td>DCA interval in use?</td><td><code>show ap dot11 5ghz channel</code></td><td>WLC-configured interval</td><td>AI policy interval (may differ from global CLI)</td></tr>
+            <tr><td>AI services enabled?</td><td>CatC → Design → RF Profile → AI RF Profile</td><td>—</td><td>DCA / TPC / FRA / DBS checkboxes (≥1 required)</td></tr>
+            <tr><td>RRM change audit</td><td>CatC → Assurance → AI RRM Control Center</td><td>WLC syslog / <code>show ap dot11 … rrm</code></td><td>RRM Changes (30-min), Insights, Simulator</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- BP COMPARE -->
+    <div id="sec-compare" class="section">
+      <h2>Best Practice Comparison Matrix</h2>
+      <p>Cross-reference of C9800 defaults vs. published Cisco guidance.</p>
+      <div class="table-scroll">
+        <table id="bpCompareTable">
+          <thead>
+            <tr>
+              <th>Setting</th>
+              <th>C9800 Default</th>
+              <th>WLC RF BP</th>
+              <th>CX Design Guide</th>
+              <th>AI-Enhanced RRM</th>
+              <th>Recommended Action</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 9800 CLASSIC -->
+    <div id="sec-9800" class="section">
+      <h2>Catalyst 9800 — Classic RRM</h2>
+      <p>Local Auto-Leader. Configuration → Radio Configurations → RRM.</p>
+      <div class="callout">
+        <strong>Client Preference &amp; FRA client guardrails</strong>
+        <strong>Client Network Preference</strong> (<code>client-network-preference</code>) is set per RF profile — values: <code>default</code>, <code>5ghz</code>, <code>6ghz</code>.
+        It biases capable clients toward a band; it is not the same as WLAN band select.
+        <strong>Client-aware FRA</strong> uses <code>client-select</code> (% of clients already on 5 GHz before converting a 2.4 GHz radio) and
+        <code>client-reset</code> (minimum associated clients before an FRA band-change decision resets). These are the primary
+        &quot;number of clients before radio change&quot; knobs for FRA — separate from CHD <code>min failed clients</code> (power) and
+        client steering <code>client-count</code> (roam).
+      </div>
+      <div id="settings9800"></div>
+    </div>
+
+    <!-- AI RRM -->
+    <div id="sec-ai" class="section">
+      <h2>Catalyst Center 3.x — AI-Enhanced RRM</h2>
+      <div class="callout">
+        <strong>Prerequisites</strong>
+        Enable AI Network Analytics and Device Controllability. Assign AI RF Profile per site. Insights populate after ~1 week. Profile push causes CAPWAP reset — schedule maintenance window.
+      </div>
+      <div id="settingsAi"></div>
+      <h3>AI RRM Control Center metrics</h3>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>Metric</th><th>What it measures</th><th>Tuning relevance</th></tr></thead>
+          <tbody>
+            <tr><td>RRM Performance Score</td><td>Composite 0–100 (CCI, near-channel, duty cycle)</td><td>Track trend after profile changes</td></tr>
+            <tr><td>Neighbor Density (NDM)</td><td>APs heard ≥ -70 dBm</td><td>Very High &gt;15, High 10–15, Med 5–10, Low ≤5</td></tr>
+            <tr><td>Co-Channel Interference</td><td>Impact score 0–100</td><td>High (71–100) = review DCA sensitivity</td></tr>
+            <tr><td>FRA Coverage Overlap Factor</td><td>% 2.4 GHz cell at -67 dBm from other 2.4 radios</td><td>COF: Low=100%, Med=95%, High=90%</td></tr>
+            <tr><td>RRM Changes (30-min)</td><td>Channel, power, width, FRA changes</td><td>Spike = sensitivity too high; export CSV</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- CLI -->
+    <div id="sec-cli" class="section">
+      <h2>Key CLI Reference</h2>
+      <p>Repeat 5 GHz commands for <code>24ghz</code> and <code>6ghz</code> as needed.</p>
+      <div id="cliGeneral"></div>
+      <h3 id="cliProfileHeading">Deployment-specific CLI (5 GHz)</h3>
+      <div id="cliProfile"></div>
+    </div>
+
+    <p class="subtitle" style="margin-top:40px;font-size:0.75rem;">
+      BP Fit: <span class="badge align">Matches BP</span> aligns with Cisco defaults ·
+      <span class="badge caution">Context-dependent</span> varies by deployment ·
+      <span class="badge conflict">BP differs</span> enterprise vs high-density guidance conflict
+    </p>
+  </div>
+
+  <script>
+    const PROFILES = [
+      {
+        id: "enterprise-campus",
+        label: "Carpeted Office — Enterprise Campus",
+        subtitle: "Owned building(s), controlled RF domain, drop-ceiling APs",
+        summary: "You control the building and most neighboring RF. Standard Cisco enterprise best practices apply closely. RRM can be more adaptive because foreign interference is limited.",
+        density: "Low–Medium", foreignRf: "Low",
+        traits: [
+          "Single-tenant or corporate campus with managed WLAN",
+          "AP density moderate — ~1 AP per 1,500–2,500 sq ft",
+          "Most neighbors are your own APs; few overlapping foreign SSIDs",
+          "2.4 GHz congested (Bluetooth, IoT) — band select recommended"
+        ],
+        settings: [
+          ["DCA","Mode","Automatic","Standard scheduled optimization","Adapts to interference and neighbor changes","Channel moves during business hours if interval is short"],
+          ["DCA","Interval","4 hours","Avoid 10-min default thrashing","Fewer client disconnects; stable plan","Slow to react to sustained new interferers"],
+          ["DCA","Anchor Time","2 (2:00 AM)","Off-peak channel updates","Changes when fewest users are connected","If RF worsens during day, waits until next anchor"],
+          ["DCA","Sensitivity","Medium (15 dB)","Cisco default appropriate","Balances optimization vs stability in owned RF","May still change channels in moderately noisy floors"],
+          ["DCA","Avoid Foreign AP","Enabled","Few foreign APs — safe to steer","Avoids channels dominated by rogue/neighbor BSSIDs","Can churn channels if foreign count is high (not your case)"],
+          ["DCA","Avoid Cisco AP Load","Disabled","Cisco BP","Predictable DCA without load-weighting side effects","Ignores AP load when picking channels"],
+          ["DCA","Channel Width (5 GHz)","40 MHz (20 on dense floors)","Carpeted office tolerance","Higher throughput per AP","Fewer non-overlapping channels; more CCI on dense floors"],
+          ["TPC","Version / Mode","TPCv1, Automatic","Default enterprise","Auto-balances power to neighbor reports","Power can hunt if TPC interval ≪ DCA interval"],
+          ["TPC","Channel Aware (5 GHz)","Enabled","Per-channel power balance","Better balance when widths/channels differ per AP","Slightly more complex TPC decisions"],
+          ["TPC","Min / Max Power","5 / 14 dBm","Typical carpeted office cells","Caps runaway power; reduces CCI","Risk of coverage holes at cell edge if max too low"],
+          ["TPC","Power Threshold","-70 dBm","Cisco default","Targets consistent cell-edge RSSI","Lower threshold = smaller cells; may increase roam rate"],
+          ["CHD","Coverage Hole Detection","Enabled","Cisco BP","Fills real coverage gaps automatically","Can raise power unnecessarily if threshold too aggressive"],
+          ["CHD","Min failed clients","3 (default)","Before CHD raises power","Ignores single-client anomalies","Real holes with &lt;3 clients may persist longer"],
+          ["ED-RRM","Event Driven RRM","Enabled, Medium","Transient interferer recovery","Fast channel escape from microwave/jammer","Unplanned channel moves; disruptive to latency-sensitive apps"],
+          ["ED-RRM","Rogue Contribution","Enabled (80%)","Low rogue count","Reacts to high-duty-cycle interferers","False triggers if neighbor WLANs classified as rogue"],
+          ["CleanAir","Detection","Enabled","Spectrum awareness","Feeds ED-RRM and Assurance interferer data","Extra AP CPU; alarms if not tuned"],
+          ["DBS / FRA","DBS / FRA","DBS optional; FRA on XOR APs","5 GHz capacity","Adds 5 GHz radios where 2.4 is underused","Band role changes can disconnect 2.4-only clients"],
+          ["Client Pref.","Network Preference","default","No forced band bias","Clients choose band naturally","2.4-only or band-sticky clients stay on congested band"],
+          ["Client-Aware FRA","Client select %","50% (default)","Clients on 5 GHz before 2.4→5G conversion","Prevents premature FRA conversion with few 5G clients","Delays 5 GHz capacity gain until threshold met"],
+          ["Client-Aware FRA","Client reset count","5 clients","Min clients before FRA band change resets","Avoids flip-flop on low client count","FRA may stay in suboptimal mode with 1–4 clients"],
+          ["Data Rates","5 GHz mandatory","12 Mbps; disable 6 & 9","C9800 BP","Reasonable cell size for enterprise","Very edge clients on weak RSSI may struggle"],
+          ["WLAN","Band Select","Enabled (not voice WLANs)","Steer to 5 GHz","Offloads 2.4 GHz; better throughput","Brief association delay; some legacy clients fail band select"],
+          ["WLAN","SSID Count","2–3 SSIDs","Minimize beacon overhead","More airtime for data","Fewer SSID segmentation options"],
+          ["RxSOP","Receiver threshold","Auto","Not needed when RF controlled","Full decode range — max compatibility","Hears distant foreign transmissions (OK when RF is yours)"]
+        ],
+        aiRrm: { busyHour: "8 AM – 6 PM weekdays", sensitivity: "Medium", services: "DCA + TPC + DBS; FRA if XOR APs", notes: "Good AI-RRM candidate. RRM Simulator before width changes." },
+        cli: ["ap dot11 5ghz rrm channel dca interval 4","ap dot11 5ghz rrm channel dca anchor-time 2","ap dot11 5ghz rrm channel dca sensitivity medium","ap dot11 5ghz rrm txpower min 5","ap dot11 5ghz rrm txpower max 14","ap dot11 5ghz rrm tpc-threshold -70","ap dot11 5ghz rrm channel cleanair-event sensitivity medium"]
+      },
+      {
+        id: "multi-tenant",
+        label: "Carpeted Office — Multi-Tenant Building",
+        subtitle: "Shared high-rise or business park; overlapping foreign WLANs",
+        summary: "You own your floor(s) but share RF with tenants above, below, and adjacent. Foreign AP avoidance and ED-RRM destabilize RRM. Prioritize stability over aggressive optimization.",
+        density: "Medium", foreignRf: "High",
+        traits: [
+          "Multiple unrelated WLANs on same channels",
+          "Foreign BSSIDs on every channel — Avoid Foreign AP causes churn",
+          "Rogues are often legitimate neighbor SSIDs",
+          "Carpeted density similar to campus but RF is hostile"
+        ],
+        settings: [
+          ["DCA","Mode","Automatic","Tune for stability","Self-healing within guardrails","Any auto mode can still move channels"],
+          ["DCA","Interval","4–6 hours","Resist transient neighbor changes","Neighbors' hourly changes don't trigger yours","Slow response to your own new interferer"],
+          ["DCA","Anchor Time","3 (3:00 AM)","Overnight convergence","Users rarely affected","Daytime RF problems wait for anchor"],
+          ["DCA","Sensitivity","Low (30 dB)","Ignore foreign RF drift","Stable channel plan in hostile RF","Stays on suboptimal channel if interference is gradual"],
+          ["DCA","Avoid Foreign AP","Disabled","Critical — prevents channel churn","Channel plan based on your APs only","May share channel with loud neighbor SSID"],
+          ["DCA","Channel Width (5 GHz)","20 MHz fixed","Maximize reuse","More independent channels in shared building","Lower max throughput per AP"],
+          ["TPC","Min / Max Power","4 / 11 dBm","Don't be the loudest AP","Less CCI to/from tenants; fewer complaints","Coverage holes if AP count insufficient"],
+          ["TPC","Power Threshold","-72 to -75 dBm","Shrink cells in shared RF","Smaller cells → better capacity","More frequent roams; sticky clients may suffer"],
+          ["CHD","Coverage Hole Detection","Enabled; min failed clients 5","Reduce power wars","Fewer false power boosts from 1–2 weak clients","Real holes with &lt;5 failed clients persist"],
+          ["CHD","Min failed clients","5–8","Before CHD raises power","Stops CHD from maxing power for outliers","Legitimate small coverage gaps may linger"],
+          ["ED-RRM","Event Driven RRM","Disabled","Channel thrashing risk","Predictable channel plan for users","No fast escape from microwave/radar events"],
+          ["ED-RRM","Rogue Contribution","Disabled","False positives from neighbors","Neighbor BSSIDs don't trigger moves","Won't auto-avoid identified rogue interferers"],
+          ["DBS / FRA","DBS / FRA","Both off","Fixed 20 MHz plan","No surprise width or band role changes","No dynamic 5 GHz capacity from FRA"],
+          ["Client Pref.","Network Preference","5GHz (optional)","Bias capable clients to 5 GHz","Reduces 2.4 congestion in shared building","6 GHz-capable clients may not use 6G; test client mix"],
+          ["Client-Aware FRA","Client select %","50–60%","Before 2.4 radio converts to 5G","Conversion only when many clients already on 5G","Slower FRA benefit if most clients stay on 2.4"],
+          ["Client-Aware FRA","Client reset count","8–10","Min clients before FRA resets","Less band flip-flop in sparse areas","FRA stuck longer with few associated clients"],
+          ["RxSOP","Receiver threshold","Custom ~-76 dBm (5 GHz)","Ignore weak foreign signals","AP ignores distant foreign transmissions","May ignore weak but valid distant clients"]
+        ],
+        aiRrm: { busyHour: "8 AM – 6 PM", sensitivity: "Low during busy hour", services: "DCA + TPC only; DBS max 20 MHz", notes: "Verify Insights don't re-enable Avoid Foreign AP." },
+        cli: ["no ap dot11 5ghz rrm channel foreign","no ap dot11 5ghz rrm channel load","ap dot11 5ghz rrm channel dca sensitivity low","ap dot11 5ghz rrm channel dca interval 6","ap dot11 5ghz rrm channel dca anchor-time 3","no ap dot11 5ghz rrm channel cleanair-event","ap dot11 5ghz rrm txpower min 4","ap dot11 5ghz rrm txpower max 11","ap dot11 5ghz rrm tpc-threshold -73"]
+      },
+      {
+        id: "nyc-downtown",
+        label: "Downtown — New York City",
+        subtitle: "Ultra-dense urban canyon; extreme foreign RF",
+        summary: "Among the worst RF conditions: dozens of foreign WLANs per channel, BLE/microwave noise, slab leakage between floors. Treat RRM as guard-railed automation, not an optimizer.",
+        density: "High", foreignRf: "Very High",
+        traits: [
+          "50+ BSSIDs visible per client common",
+          "No clean channel on 2.4 or 5 GHz",
+          "High-rise slab leakage from floors above/below",
+          "DFS/TDWR still required on UNII-2/2e"
+        ],
+        settings: [
+          ["DCA","Mode","Auto → Freeze after convergence","Stability over adaptation","Freeze locks in a working plan","Frozen plan won't adapt to seasonal RF changes"],
+          ["DCA","Interval","6–8 hr or Freeze","NYC RF changes hourly","Minimal business-hour disruption","Very slow to adapt if you don't unfreeze"],
+          ["DCA","Sensitivity","Low (30 dB)","Mandatory","Ignores noise floor swings from foreign WLANs","May remain on busy channel"],
+          ["DCA","Avoid Foreign AP","Disabled","Feature unusable — every channel occupied","Only viable option in ultra-dense RF","Shares airtime with foreign BSSIDs on same channel"],
+          ["DCA","Channel Width","20 MHz fixed, no DBS","Cap width-max 20","Maximum channel reuse in canyon RF","Throughput ceiling per AP"],
+          ["TPC","Min / Max Power","2 / 10 dBm","Tight cap for open trading floors","Minimizes CCI in open floor plans","Coverage risk in corners/elevators"],
+          ["TPC","Power Threshold","-75 to -78 dBm","Help BSSID-overloaded clients","Very small cells; fewer clients per AP radio","Higher roam rate; VoIP may need tuning"],
+          ["CHD","Coverage Hole Detection","On; min failed clients 5–8","Reduce elevator/street false triggers","Fewer spurious max-power events","Edge users below threshold stay weak"],
+          ["CHD","Min failed clients","5–8","Before CHD raises power","Prevents single-client power spikes","Small real holes may not trigger CHD"],
+          ["ED-RRM","Event Driven RRM","Disabled","Disrupts VoIP/trading apps","Stable channels for latency-sensitive users","No rapid interferer avoidance"],
+          ["ED-RRM","Rogue Contribution","Disabled","Hundreds of neighbor BSSIDs","Avoids constant ED triggers from neighbors","No automatic rogue-driven channel moves"],
+          ["Client Pref.","Network Preference","5GHz","Push dual-band clients off 2.4","2.4 unusable in NYC — critical offload","Legacy 2.4-only devices may have poor experience"],
+          ["Client-Aware FRA","Client select %","60%+","Before 2.4→5G conversion","Don't convert 2.4 radio until 5G is proven","Delayed capacity if threshold set too high"],
+          ["Client-Aware FRA","Client reset count","10+","Before FRA band change resets","Stable FRA in volatile client counts","Slow FRA recovery after band change"],
+          ["Data Rates","5 GHz mandatory","18–24 Mbps; disable 6/9/12","Shrink cells","Smaller coverage footprint — less CCI","Weak-signal clients at cell edge may drop"],
+          ["WLAN","Band Select","Aggressive; 2.4 legacy SSID only","2.4 unusable in NYC","Forces capable clients to 5 GHz","Association delay; some clients never pass band select"],
+          ["WLAN","SSID Count","1–2 SSIDs","Minimize beacons","More airtime for data in beacon-saturated RF","Limited guest/IoT segmentation"],
+          ["RxSOP","Receiver threshold","Custom -78 dBm (5 GHz)","Critical for CCI reduction","Ignores foreign transmissions below threshold","May miss valid weak client at edge"]
+        ],
+        aiRrm: { busyHour: "7 AM – 7 PM", sensitivity: "Low", services: "DCA + TPC only", notes: "Freeze after Insights stabilize. RRM Simulator mandatory. 1+ week learning." },
+        cli: ["no ap dot11 5ghz rrm channel foreign","no ap dot11 5ghz rrm channel cleanair-event","ap dot11 5ghz rrm channel dca sensitivity low","ap dot11 5ghz rrm channel dca interval 8","ap dot11 5ghz rrm channel dca anchor-time 4","ap dot11 5ghz rrm channel dca chan-width 20","ap dot11 5ghz rrm txpower min 2","ap dot11 5ghz rrm txpower max 10","ap dot11 5ghz rrm tpc-threshold -76"]
+      },
+      {
+        id: "atlanta-downtown",
+        label: "Downtown — Atlanta",
+        subtitle: "Peachtree / Midtown towers; moderate-high foreign RF",
+        summary: "Less extreme than NYC but still shared tower RF. Slightly more adaptive than NYC while keeping Avoid Foreign AP off and ED-RRM constrained.",
+        density: "Medium–High", foreignRf: "Medium–High",
+        traits: [
+          "High-rise carpeted offices along Peachtree / Midtown",
+          "Fewer BSSIDs than NYC, more than suburban campus",
+          "Street-level retail adds 2.4 GHz noise",
+          "Perimeter campuses behave closer to enterprise campus"
+        ],
+        settings: [
+          ["DCA","Interval","4 hours","Balance stability and adaptation","Reasonable refresh without 10-min thrash","More moves than NYC frozen plan"],
+          ["DCA","Sensitivity","Low (start); Medium after 2 weeks if static","Conservative start","Prove stability before allowing more DCA","Medium may resume churn on Peachtree floors"],
+          ["DCA","Avoid Foreign AP","Disabled","Peachtree tower tenants","Stable plan despite neighbor SSIDs","Co-channel with foreign WLANs possible"],
+          ["DCA","Channel Width","20 MHz default; 40 on isolated floors","Tower vs lobby","40 MHz where RF is controlled","40 MHz on tower floors increases CCI"],
+          ["TPC","Min / Max Power","4 / 12 dBm","Between campus and NYC","Moderate cells without NYC extremes","12 dBm may still be loud on dense floors"],
+          ["TPC","Power Threshold","-72 dBm","Slightly lower than campus","Tighter cells than suburban default","More roams than campus profile"],
+          ["ED-RRM","Event Driven RRM","Enabled, Low sensitivity only","Real interferers only","Handles elevator microwave etc.","Low still triggers occasional moves"],
+          ["ED-RRM","Rogue Contribution","Disabled","Neighbor false positives","Neighbors won't trigger ED-RRM","No rogue-duty-cycle channel avoidance"],
+          ["DBS / FRA","DBS max 40 MHz; FRA evaluate","More flexibility than NYC","Throughput on isolated floors","Width changes can disconnect clients mid-session"],
+          ["Client Pref.","Network Preference","default or 5GHz","Tower: 5GHz; perimeter: default","Steers dual-band in dense tower floors","Wrong preference on 2.4-only IoT SSIDs causes issues"],
+          ["Client-Aware FRA","Client select %","50%","Before 2.4→5G conversion","Standard guardrail for XOR APs","Raise if FRA converts too early"],
+          ["Client-Aware FRA","Client reset count","5–8","Before FRA band reset","Balance stability vs responsiveness","Higher = slower FRA recovery"],
+          ["RxSOP","Receiver threshold","-77 dBm on dense floors; Auto elsewhere","Trading floors optional","CCI control where needed","Auto on perimeter preserves edge clients"]
+        ],
+        aiRrm: { busyHour: "8 AM – 6 PM", sensitivity: "Medium or Low on Peachtree floors", services: "DCA + TPC + DBS (40 cap)", notes: "Split AI RF profiles: Low for towers, Medium for Perimeter." },
+        cli: ["no ap dot11 5ghz rrm channel foreign","ap dot11 5ghz rrm channel dca sensitivity low","ap dot11 5ghz rrm channel dca interval 4","ap dot11 5ghz rrm channel dca anchor-time 1","ap dot11 5ghz rrm channel cleanair-event sensitivity low","no ap dot11 5ghz rrm channel cleanair-event rogue-contribution","ap dot11 5ghz rrm txpower min 4","ap dot11 5ghz rrm txpower max 12","ap dot11 5ghz rrm tpc-threshold -72"]
+      }
+    ];
+
+    const FOUR_WAY = [
+      ["DCA Interval","4 hr","4–6 hr","6–8 hr / Freeze","4 hr"],
+      ["DCA Sensitivity","Medium","Low","Low","Low (start)"],
+      ["Avoid Foreign AP","On","Off","Off","Off"],
+      ["ED-RRM","On / Med","Off","Off","On / Low"],
+      ["Rogue Contribution","On","Off","Off","Off"],
+      ["CHD","On","On (tuned)","On (tuned)","On"],
+      ["CHD min failed clients","3","5–8","5–8","3–5"],
+      ["5 GHz Width","20–40 MHz","20 MHz fixed","20 MHz fixed","20 MHz (40 isolated)"],
+      ["TPC Min / Max","5 / 14 dBm","4 / 11 dBm","2 / 10 dBm","4 / 12 dBm"],
+      ["TPC Threshold","-70 dBm","-73 dBm","-76 dBm","-72 dBm"],
+      ["RxSOP 5 GHz","Auto","Custom -76","Custom -78","Custom -77"],
+      ["Client Network Preference","default","5GHz (opt.)","5GHz","5GHz / default"],
+      ["FRA client-select %","50%","50–60%","60%+","50%"],
+      ["FRA client-reset count","5","8–10","10+","5–8"],
+      ["FRA","On (XOR)","Off","Off","Evaluate"],
+      ["AI Busy Sensitivity","Medium","Low","Low","Med / Low split"]
+    ];
+
+    const MODE_MATRIX = [
+      ["DCA (channel, interval, sensitivity, foreign AP, anchor)","<span class='badge tier-ai'>AI service</span>","Full WLC control — Configuration → RRM → DCA","AI runs DCA if enabled in AI RF Profile; WLC global DCA CLI overridden for subscribed APs","Classic: WLC GUI/CLI. AI: CatC AI RF Profile → DCA + busy hour","<code>show ap dot11 5ghz channel</code>; CatC RRM Changes"],
+      ["TPC (power, threshold, min/max, interval)","<span class='badge tier-ai'>AI service</span>","Full WLC control","AI runs TPC if enabled; set min/max caps in profile (both modes)","Classic: WLC + RF profile caps. AI: AI RF Profile TPC service + caps","<code>show ap dot11 5ghz txpower</code>; AP summary Txpwr"],
+      ["FRA / Flexible Radio","<span class='badge tier-ai'>AI service</span>","<code>show ap fra</code>; WLC FRA settings","AI FRA if enabled in profile; client-aware FRA params still in RF profile","Classic: WLC. AI: AI RF Profile FRA + WLC profile client-aware-fra","<code>show ap fra</code>"],
+      ["DBS / channel width","<span class='badge tier-ai'>AI service</span>","WLC <code>chan-width</code> / RF profile","AI DBS if enabled; <strong>must match</strong> WLC profile schema (CatC max width)","Classic: WLC. AI: AI RF Profile DBS max + aligned RF profile","<code>show ap dot11 5ghz summary</code> Width column"],
+      ["AI busy hour & sensitivity","<span class='badge tier-ai'>AI only</span>","N/A","Defers or limits changes during peak; not in classic RRM","CatC AI RF Profile only","CatC Control Center → busy hour metrics"],
+      ["AI Insights & Simulator","<span class='badge tier-ai'>AI only</span>","N/A","Recommendations and preview before deploy","CatC Assurance → AI RRM","Insights tab; Simulator preview"],
+      ["CHD (coverage hole detection)","<span class='badge tier-edge'>WLC edge</span>","WLC RRM → Coverage","Still executed on WLC; AI may recommend threshold changes","WLC GUI/CLI (global + RF profile)","<code>show ap dot11 5ghz coverage</code>; auto-rf coverage section"],
+      ["ED-RRM / CleanAir event","<span class='badge tier-edge'>WLC edge</span>","WLC RRM → ED-RRM","Local ED-RRM; telemetry feeds AI Insights","WLC <code>rrm channel cleanair-event</code>","<code>show ap dot11 5ghz channel</code> ED-RRM lines"],
+      ["DFS / smart DFS / channel switch","<span class='badge tier-edge'>WLC edge</span>","WLC per-band","Edge engine; local radar response","WLC CLI","DFS stats in <code>show ap auto-rf</code>"],
+      ["Optimized roaming (RRM-related)","<span class='badge tier-edge'>WLC edge</span>","WLC","Edge; not cloud DCA/TPC","WLC assisted-roaming / 802.11k/v WLAN","Client roam metrics in Assurance"],
+      ["RxSOP","<span class='badge tier-profile'>RF profile</span>","RF profile on WLC","Pushed via AI RF Profile (same schema as legacy profile)","<code>ap dot11 … rf-profile</code> or AI profile push","Profile applied on AP in <code>show ap rf-profile</code>"],
+      ["Data rates (mandatory/supported)","<span class='badge tier-profile'>RF profile</span>","RF profile","AI RF Profile includes data rate section","RF profile / AI RF Profile advanced","<code>show ap dot11 5ghz network</code> + profile"],
+      ["Client network preference","<span class='badge tier-profile'>RF profile</span>","RF profile <code>client-network-preference</code>","In AI RF Profile payload when pushed","RF profile CLI","Per-profile <code>show run | sec client-network</code>"],
+      ["Client-aware FRA (client-select %, client-reset count)","<span class='badge tier-profile'>RF profile</span>","RF profile + global defaults","Still WLC/profile — guards FRA band change","<code>client-aware-fra client-select</code> / <code>client-reset</code>","<code>show ap fra</code>"],
+      ["Tx-power min/max (profile caps)","<span class='badge tier-profile'>RF profile</span>","RF profile (required in both modes)","Hard caps AI TPC must respect","RF profile <code>tx-power min/max</code>","AP summary vs profile"],
+      ["Channel foreign (profile level)","<span class='badge tier-profile'>RF profile</span>","Global + per-profile","Include in AI RF Profile; disable both in multi-tenant","Global + <code>no channel foreign</code> under profile","Config audit"],
+      ["Band select","<span class='badge tier-wlan'>WLAN</span>","WLAN Advanced","Not part of AI RRM — always WLC","Per-WLAN <code>band-select</code>","WLAN policy"],
+      ["Client steering","<span class='badge tier-wlan'>WLAN</span>","WLAN + <code>wireless client client-steering</code>","Not AI RRM","WLAN <code>client-steering</code>","Assurance client events"],
+      ["802.11k/v, FT, BSS transition","<span class='badge tier-wlan'>WLAN</span>","WLAN","Not AI RRM","WLAN config","Roaming tests"],
+      ["SSID count / multi-BSSID","<span class='badge tier-wlan'>WLAN</span>","WLAN / policy tags","Not AI RRM","Policy tag / WLAN","Beacon overhead"],
+      ["RF group name / per-site groups","<span class='badge tier-both'>Both</span>","WLC <code>ap dot11 … rf-group name</code>","Still relevant — AI clusters within controller RF domain","WLC CLI before AI enroll","<code>show ap dot11 5ghz group</code>"],
+      ["Avoid Foreign AP (global RRM)","<span class='badge tier-both'>Both</span>","WLC global RRM","Disable before AI if multi-tenant; also remove from RF profiles","WLC global + profile","Channel assignment behavior"],
+      ["RRM logging","<span class='badge tier-both'>Both</span>","WLC <code>rrm logging</code>","Useful in both modes for audit","WLC CLI","Syslog / debug"],
+      ["Cloud disconnect / failover","<span class='badge tier-both'>Both</span>","N/A — classic only uses WLC","WLC reverts to <strong>last pushed AI profile</strong> on WLC; then local RRM behavior","Ensure profile schema complete on WLC","BRKEWN-3413: mismatch = APs without profile on failover"]
+    ];
+
+    const BP_COMPARE = [
+      ["DCA Interval","10 minutes","Enable Auto DCA","4+ hours + anchor","Busy hour defers","Never leave 10-min in production"],
+      ["DCA Sensitivity","Medium","Enable Auto DCA","Low after convergence","Busy Hour Sensitivity","Low in multi-tenant/noisy"],
+      ["Avoid Cisco AP Load","Disabled","—","Disable","N/A","Keep disabled"],
+      ["Avoid Foreign AP","Enabled","—","Disable in rogue-heavy","Cluster analytics","Off in multi-tenant"],
+      ["ED-RRM","Enabled","Enable","Disable high-density","Cloud + busy hour","Enterprise yes; stadium no"],
+      ["TPC Min/Max","Unbounded","Enable Auto TPC","Per RF profile","Profile caps","Mandatory all designs"],
+      ["TPC Update Interval","600 sec","—","3600 sec with long DCA","N/A","Align TPC cadence with DCA"],
+      ["Coverage Hole Detection","Enabled","Enable","Disable large public","Per profile","Enterprise on; stadium off"],
+      ["CHD min failed clients","3","—","5–8 dense","N/A","Clients before CHD raises power"],
+      ["Client Network Preference","default","—","5GHz when 2.4 bad","N/A","RF Profile setting"],
+      ["FRA client-select %","50%","—","50–60% before 2.4→5G","N/A","% clients on 5G before FRA converts"],
+      ["FRA client-reset count","5","—","5–10 by density","N/A","Min clients before FRA band reset"],
+      ["Channel Width 5 GHz","20/Best","40 caution","20 MHz dense","DBS max cap","20 MHz dense; uniform per area"],
+      ["FRA","BP expects on","—","Disable","COF-driven","XOR APs enterprise only"],
+      ["CleanAir","Enabled","Enable","Enable","Telemetry","Enable universally"],
+      ["SSID Count","≤4","1–3","1 high-density","N/A","Minimize SSIDs"]
+    ];
+
+    const SETTINGS_9800 = {
+      "RF Infrastructure": [
+        {f:"RF Group",s:"Group Mode",loc:"RRM > RF Grouping",def:"Automatic",rec:"Automatic per geography",pos:"Coordinated DCA/TPC among hearing APs",neg:"Single group across distant sites = odd global decisions",bp:"Automatic when APs hear each other",m:"align"},
+        {f:"RF Profile",s:"Per-band assignment",loc:"Tags & Profiles > RF Tags",def:"default-rf-profile",rec:"One profile per deployment type",pos:"Site-appropriate power, rates, RxSOP",neg:"More profiles to maintain",bp:"Name by area + antenna",m:"align"},
+        {f:"Site Tag",s:"WNCd load grouping",loc:"Tags & Profiles > Site Tags",def:"default-site-tag",rec:"~500 APs per tag",pos:"Scales controller processing",neg:"Too many tags = operational overhead",bp:"RF load balance if 100+ APs/tag",m:"align"}
+      ],
+      "Dynamic Channel Assignment (DCA)": [
+        {f:"DCA",s:"Assignment Mode",loc:"RRM > DCA",def:"Automatic",rec:"Automatic (Freeze when stable)",pos:"Self-optimizing channel plan",neg:"Channel moves disconnect sensitive clients",bp:"Auto; Freeze when stable",m:"align"},
+        {f:"DCA",s:"Interval",loc:"RRM > DCA > Interval",def:"10 min",rec:"Increase to 4–8 hours",pos:"Stable plan; fewer surprise roams",neg:"Slow response to new persistent interferer",bp:"Increase from 10 min always",m:"conflict"},
+        {f:"DCA",s:"Anchor Time",loc:"RRM > DCA > Anchortime",def:"Not set",rec:"Set off-peak hour (0–4)",pos:"Changes when fewest users online",neg:"Daytime problems wait until anchor",bp:"Pair with long interval",m:"align"},
+        {f:"DCA",s:"Sensitivity",loc:"RRM > DCA",def:"Medium (15 dB)",rec:"Low in multi-tenant / NYC",pos:"Ignores minor RF drift; stable channels",neg:"Stays on gradually worsening channel",bp:"Low in multi-tenant",m:"caution"},
+        {f:"DCA",s:"Avoid Foreign AP",loc:"RRM > DCA + RF Profile",def:"Enabled (global & profile)",rec:"Disable in shared buildings",pos:"Channel plan based on your APs only",neg:"May co-channel with loud neighbor WLAN",bp:"Off in multi-tenant",m:"conflict"},
+        {f:"DCA",s:"Avoid Cisco AP Load",loc:"RRM > DCA",def:"Disabled",rec:"Keep disabled",pos:"Predictable DCA without load side effects",neg:"Ignores congested AP when picking channel",bp:"Keep disabled",m:"align"},
+        {f:"DCA",s:"Channel Width",loc:"RRM > DCA / RF Profile",def:"20 MHz",rec:"20 MHz dense; 40 MHz owned RF",pos:"40 MHz = higher throughput",neg:"40 MHz = fewer reuse channels, more CCI",bp:"20 MHz high-density",m:"align"},
+        {f:"DCA",s:"Aggressive on startup",loc:"RRM > DCA",def:"Enabled",rec:"Disable after initial deploy",pos:"Fast convergence on greenfield",neg:"Mass channel churn after WLC reload/AP join",bp:"Disable in production steady-state",m:"caution"}
+      ],
+      "Transmit Power Control (TPC)": [
+        {f:"TPC",s:"Mode",loc:"RRM > TPC",def:"Automatic",rec:"Automatic with min/max caps",pos:"Dynamic CCI control",neg:"Power hunting if interval too short",bp:"Auto + min/max bounds",m:"align"},
+        {f:"TPC",s:"Version",loc:"RRM > TPC / RF Profile",def:"TPCv1",rec:"TPCv1 + Channel Aware (5 GHz)",pos:"TPCv1 lowers power for capacity",neg:"Edge clients may see lower SNR",bp:"TPCv1 + Ch-Aware 5G",m:"align"},
+        {f:"TPC",s:"Update Interval",loc:"RRM > TPC",def:"600 sec",rec:"3600 sec (align with DCA philosophy)",pos:"Stable transmit power",neg:"Slow to fix real power imbalance",bp:"Don't run 10-min TPC with 8-hr DCA",m:"caution"},
+        {f:"TPC",s:"Min / Max",loc:"RRM > TPC + RF Profile",def:"Unbounded / max 30",rec:"Set per design (e.g. 4–14 dBm)",pos:"Prevents client-magnet APs at max power",neg:"Max too low → coverage holes",bp:"Always set per design",m:"align"},
+        {f:"TPC",s:"Power Threshold",loc:"RRM > TPC",def:"-70 dBm",rec:"Dense: -72 to -78 dBm",pos:"Smaller cells → better capacity",neg:"More client roams",bp:"Dense: -75 to -80",m:"caution"}
+      ],
+      "Coverage Hole Detection": [
+        {f:"CHD",s:"Enable",loc:"RRM > Coverage",def:"Enabled",rec:"On enterprise; tune or off stadium",pos:"Auto-raises power for validated holes",neg:"False positives raise power → more CCI",bp:"Enterprise on; stadium off",m:"caution"},
+        {f:"CHD",s:"Data RSSI Threshold",loc:"RRM > Coverage",def:"-80 dBm",rec:"Match cell-edge design (-75 to -85)",pos:"Triggers before clients are unusable",neg:"Too high → premature power increases",bp:"Match cell-edge SNR target",m:"caution"},
+        {f:"CHD",s:"Min failed clients",loc:"RRM > Coverage > Level",def:"3 clients",rec:"5–8 in dense / multi-tenant",pos:"Ignores 1–2 client anomalies",neg:"Real holes with fewer clients persist",bp:"Raise in dense foreign RF",m:"caution"},
+        {f:"CHD",s:"Exception level %",loc:"RRM > Coverage",def:"25%",rec:"25% default; raise if flaky",pos:"Requires consistent failure pattern",neg:"High % → slow CHD response",bp:"25% enterprise default",m:"align"}
+      ],
+      "CleanAir & ED-RRM": [
+        {f:"CleanAir",s:"Detection",loc:"AP radio config",def:"Enabled",rec:"Enabled on supported APs",pos:"Spectrum visibility; ED-RRM input",neg:"AP CPU; alarm noise if unreviewed",bp:"Enable on supported APs",m:"align"},
+        {f:"ED-RRM",s:"Event Driven RRM",loc:"RRM > DCA",def:"Enabled",rec:"Off dense / multi-tenant; Low elsewhere",pos:"~30 sec escape from interferer",neg:"Unplanned channel moves in peak hours",bp:"Off in busy/high-density",m:"conflict"},
+        {f:"ED-RRM",s:"Rogue Contribution",loc:"RRM > DCA",def:"Configurable",rec:"Off when neighbors look like rogues",pos:"Avoids rogue-heavy channels",neg:"Neighbor WLANs trigger false ED events",bp:"Off multi-tenant",m:"conflict"},
+        {f:"ED-RRM",s:"Sensitivity",loc:"RRM > DCA",def:"Medium",rec:"Low when ED-RRM stays enabled",pos:"Only strong interferers trigger",neg:"Weak interferers ignored longer",bp:"Low in downtown towers",m:"caution"}
+      ],
+      "Client Network Preference & FRA Guardrails": [
+        {f:"Client Pref.",s:"Network Preference",loc:"RF Profile > Client Network Preference",def:"default",rec:"5GHz in dense; default on campus",pos:"Biases dual-band clients to less congested band",neg:"May block optimal 6 GHz use; hurts 2.4-only devices",bp:"5GHz when 2.4 saturated",m:"caution"},
+        {f:"Client-Aware FRA",s:"Client select %",loc:"RF Profile / client-aware-fra client-select",def:"50%",rec:"50% campus; 60%+ NYC before 2.4→5G",pos:"Won't convert 2.4 radio until enough clients on 5G",neg:"Delays 5 GHz capacity from FRA conversion",bp:"Raise in volatile RF before FRA",m:"caution"},
+        {f:"Client-Aware FRA",s:"Client reset count",loc:"RF Profile / client-aware-fra client-reset",def:"5 clients",rec:"5 campus; 8–10 dense; 10+ NYC",pos:"Prevents FRA band flip-flop with few clients",neg:"FRA stays suboptimal until client count met",bp:"Clients per AP before FRA band reset",m:"align"},
+        {f:"Client-Aware FRA",s:"Client reset util %",loc:"client-aware-fra client-reset-util",def:"5%",rec:"5% default",pos:"Also requires low utilization before reset",neg:"Busy radio won't reset FRA decision quickly",bp:"Pair with client-reset count",m:"align"},
+        {f:"Client-Aware FRA",s:"Client count reset (6 GHz)",loc:"client-aware-fra client-count-reset",def:"1",rec:"1 default",pos:"6G FRA resets with minimal client count",neg:"May reset 6G FRA too eagerly",bp:"Tune with 6G rollout",m:"caution"},
+        {f:"FRA",s:"Flexible Radio Assignment",loc:"ap fra / RRM",def:"Often disabled",rec:"On XOR APs enterprise only",pos:"Adds 5 GHz radio from underused 2.4",neg:"2.4-only clients lose radio; band change disruption",bp:"Off NYC / multi-tenant",m:"caution"}
+      ],
+      "DBS, Band Select & RxSOP": [
+        {f:"DBS",s:"Dynamic Bandwidth",loc:"chan-width best",def:"Varies",rec:"Cap width-max in dense designs",pos:"Auto width for throughput",neg:"Surprise width changes; more CCI",bp:"Cap 20 MHz dense",m:"conflict"},
+        {f:"Band Select",s:"WLAN band select",loc:"WLAN > Advanced",def:"Varies per WLAN",rec:"On data WLANs; off voice",pos:"Steers clients to 5 GHz",neg:"Association delay; some clients fail",bp:"On; off voice WLANs",m:"align"},
+        {f:"Client Steering",s:"Client count threshold",loc:"wireless client client-steering client-count",def:"3",rec:"3 default; 5+ dense",pos:"Requires multiple clients before steer decision",neg:"Single weak client won't trigger steer",bp:"Pair with min-rssi-5ghz",m:"align"},
+        {f:"RxSOP",s:"Receive threshold",loc:"RF Profile > High Density",def:"Auto",rec:"Custom dBm dense (-76 to -82)",pos:"Shrinks effective receive cell; less CCI",neg:"Weak valid clients at edge ignored",bp:"Custom dBm dense venues",m:"caution"}
+      ]
+    };
+
+    const SETTINGS_AI = [
+      {f:"AI-Enhanced RRM",s:"Enablement",loc:"AI RF Profile",def:"Legacy",rec:"Migrate sites with Assurance",pos:"Cloud ML optimization; CatC as RF leader",neg:"CAPWAP reset on profile push; cloud dependency",bp:"Migrate all sites on WLC",m:"align"},
+      {f:"AI-Enhanced RRM",s:"Busy Hour",loc:"AI RF Profile",def:"Admin set",rec:"Match site peak hours",pos:"Defers disruptive changes in peak",neg:"Peak-hour RF problems wait until off-peak",bp:"Match operational peak",m:"align"},
+      {f:"AI-Enhanced RRM",s:"Busy Hour Sensitivity",loc:"AI RF Profile",def:"Medium",rec:"Low for voice/latency sites",pos:"Critical-only changes during busy hour",neg:"Under-optimization during business hours",bp:"Low for voice/latency",m:"align"},
+      {f:"AI-Enhanced RRM",s:"DCA Service",loc:"AI RF Profile",def:"Optional",rec:"Enable with width caps in dense RF",pos:"Cluster-aware channel optimization",neg:"DCA restart on migration; learning period",bp:"DCA restart on migrate",m:"align"},
+      {f:"AI-Enhanced RRM",s:"TPC Service",loc:"AI RF Profile",def:"Optional",rec:"Enable with min/max caps always",pos:"NDM/SNR-aware power",neg:"Still needs WLC profile max caps",bp:"Set min/max caps",m:"align"},
+      {f:"AI-Enhanced RRM",s:"DBS Service",loc:"AI RF Profile",def:"Optional",rec:"Cap 20 MHz in dense profiles",pos:"AI-driven width optimization",neg:"Width changes mid-session",bp:"Match WLC schema; cap 20 dense",m:"caution"},
+      {f:"AI-Enhanced RRM",s:"Insights / Simulator",loc:"Assurance > AI RRM",def:"~1 week",rec:"Simulator before every deploy",pos:"Preview impact before push",neg:"Requires ~1 week baseline data",bp:"Simulator before deploy",m:"align"}
+    ];
+
+    const CLI_GENERAL = [
+      ["Show RRM status","show ap dot11 {24ghz|5ghz|6ghz} rrm"],
+      ["Show RF group","show wireless rf-group summary"],
+      ["Show FRA / client-aware","show ap fra"],
+      ["DCA restart","ap dot11 {band} rrm dca restart"],
+      ["Set DCA interval","ap dot11 5ghz rrm channel dca interval 4"],
+      ["Set DCA anchor","ap dot11 5ghz rrm channel dca anchor-time 8"],
+      ["DCA sensitivity","ap dot11 5ghz rrm channel dca sensitivity {low|medium|high}"],
+      ["Disable Avoid Foreign (global)","no ap dot11 5ghz rrm channel foreign"],
+      ["Disable Avoid Foreign (profile)","ap dot11 5ghz rf-profile MY-PROFILE / no channel foreign"],
+      ["Disable Avoid AP Load","no ap dot11 5ghz rrm channel load"],
+      ["TPC threshold","ap dot11 5ghz rrm tpc-threshold -75"],
+      ["TPC min/max (global)","ap dot11 5ghz rrm txpower min / max"],
+      ["TPC min/max (profile)","ap dot11 5ghz rf-profile MY-PROFILE / tx-power max 12"],
+      ["TPC interval","ap dot11 5ghz rrm txpower interval 3600"],
+      ["CHD min failed clients","ap dot11 5ghz rrm coverage level global 5"],
+      ["Client network preference","ap dot11 5ghz rf-profile MY-PROFILE / client-network-preference 5ghz"],
+      ["FRA client-select %","ap dot11 5ghz client-aware-fra client-select 50"],
+      ["FRA client-reset count","ap dot11 5ghz client-aware-fra client-reset 5"],
+      ["FRA client-reset util","ap dot11 5ghz client-aware-fra client-reset-util 5"],
+      ["ED-RRM sensitivity","ap dot11 5ghz rrm channel cleanair-event sensitivity low"],
+      ["Verify AI cloud","show cloud-services summary"],
+      ["Check RF leader role","show ap dot11 5ghz group"],
+      ["Check RF leader (all bands)","show wireless rf-group summary"]
+    ];
+
+    function badge(m) {
+      const labels = { align: "Matches BP", caution: "Context-dependent", conflict: "BP differs" };
+      return `<span class="badge ${m}">${labels[m] || m}</span>`;
+    }
+
+    function renderProfile(id) {
+      const p = PROFILES.find(x => x.id === id);
+      if (!p) return;
+      document.getElementById("profileContent").innerHTML = `
+        <div class="card">
+          <div class="card-header">${p.label} <span class="pill ok" style="float:right">Tailored Profile</span></div>
+          <div class="card-body">
+            <p><em>${p.subtitle}</em></p>
+            <p>${p.summary}</p>
+            <p>
+              <span class="pill info">Density: ${p.density}</span>
+              <span class="pill warn">Foreign RF: ${p.foreignRf}</span>
+            </p>
+            <h3>Environment traits</h3>
+            <ul class="traits">${p.traits.map(t => `<li>${t}</li>`).join("")}</ul>
+            <h3>Recommended settings</h3>
+            <div class="table-scroll"><table>
+              <thead><tr><th>Category</th><th>Setting</th><th>Recommended</th><th>Rationale</th><th>Positive impact</th><th>Negative impact / tradeoff</th></tr></thead>
+              <tbody>${p.settings.map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td><td><strong>${r[2]}</strong></td><td>${r[3]}</td><td class="impact-pos">${r[4]||"—"}</td><td class="impact-neg">${r[5]||"—"}</td></tr>`).join("")}</tbody>
+            </table></div>
+            <h3>Catalyst Center AI-Enhanced RRM</h3>
+            <table>
+              <tr><th>Busy Hour</th><td>${p.aiRrm.busyHour}</td></tr>
+              <tr><th>Sensitivity</th><td>${p.aiRrm.sensitivity}</td></tr>
+              <tr><th>Services</th><td>${p.aiRrm.services}</td></tr>
+              <tr><th>Notes</th><td>${p.aiRrm.notes}</td></tr>
+            </table>
+          </div>
+        </div>`;
+      document.getElementById("cliProfile").innerHTML = p.cli.map(c => `<div class="cli-block"><code>${c}</code></div>`).join("");
+    }
+
+    function render9800() {
+      let html = "";
+      for (const [title, rows] of Object.entries(SETTINGS_9800)) {
+        html += `<details><summary>${title} (${rows.length} settings)</summary><div class="inner"><table>
+          <thead><tr><th>Feature</th><th>Sub-feature</th><th>Default</th><th>Recommended</th><th>Positive impact</th><th>Negative impact</th><th>Best Practice</th><th>BP Fit</th></tr></thead>
+          <tbody>${rows.map(r => `<tr>
+            <td>${r.f}</td>
+            <td>${r.s}<span class="loc">${r.loc}</span></td>
+            <td>${r.def}</td><td>${r.rec}</td><td class="impact-pos">${r.pos}</td><td class="impact-neg">${r.neg}</td><td>${r.bp}</td><td>${badge(r.m)}</td>
+          </tr>`).join("")}</tbody></table></div></details>`;
+      }
+      document.getElementById("settings9800").innerHTML = html;
+    }
+
+    function renderAi() {
+      document.getElementById("settingsAi").innerHTML = `<div class="table-scroll"><table>
+        <thead><tr><th>Feature</th><th>Sub-feature</th><th>Default</th><th>Recommended</th><th>Positive impact</th><th>Negative impact</th><th>Best Practice</th><th>BP Fit</th></tr></thead>
+        <tbody>${SETTINGS_AI.map(r => `<tr>
+          <td>${r.f}</td><td>${r.s}<span class="loc">${r.loc}</span></td>
+          <td>${r.def}</td><td>${r.rec}</td><td class="impact-pos">${r.pos}</td><td class="impact-neg">${r.neg}</td><td>${r.bp}</td><td>${badge(r.m)}</td>
+        </tr>`).join("")}</tbody></table></div>`;
+    }
+
+    function init() {
+      const depSel = document.getElementById("deploymentSelect");
+      PROFILES.forEach(p => {
+        const o = document.createElement("option");
+        o.value = p.id; o.textContent = p.label;
+        depSel.appendChild(o);
+      });
+
+      document.getElementById("fourWayTable").querySelector("tbody").innerHTML =
+        FOUR_WAY.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join("")}</tr>`).join("");
+
+      document.getElementById("bpCompareTable").querySelector("tbody").innerHTML =
+        BP_COMPARE.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join("")}</tr>`).join("");
+
+      document.getElementById("modeMatrixTable").querySelector("tbody").innerHTML =
+        MODE_MATRIX.map(r => `<tr>${r.map((c,i) => i === 1 ? `<td>${c}</td>` : `<td>${c}</td>`).join("")}</tr>`).join("");
+
+      document.getElementById("cliGeneral").innerHTML = `<div class="table-scroll"><table>
+        <thead><tr><th>Action</th><th>CLI</th></tr></thead>
+        <tbody>${CLI_GENERAL.map(r => `<tr><td>${r[0]}</td><td><code>${r[1]}</code></td></tr>`).join("")}</tbody>
+      </table></div>`;
+
+      render9800();
+      renderAi();
+      renderProfile("enterprise-campus");
+
+      document.getElementById("viewSelect").addEventListener("change", e => {
+        document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+        const v = e.target.value;
+        document.getElementById("sec-" + v).classList.add("active");
+        document.getElementById("deploymentControl").style.display =
+          (v === "deployment") ? "block" : "none";
+      });
+
+      depSel.addEventListener("change", e => renderProfile(e.target.value));
+    }
+
+    init();
+  </script>
+</body>
+</html>
