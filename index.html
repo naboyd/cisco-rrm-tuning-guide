@@ -122,6 +122,15 @@
     .prompt-steps { margin: 0; padding-left: 20px; color: var(--muted); font-size: 0.9rem; }
     .prompt-steps li { margin: 8px 0; }
     .badge.align { background: rgba(61,153,112,0.2); color: #6dd4a8; }
+    .badge.def-tag { background: rgba(154,160,176,0.2); color: var(--muted); font-size: 0.65rem; }
+    .badge.chg-tag { background: rgba(201,162,39,0.25); color: #e8c84a; font-size: 0.65rem; }
+    td.val-default-cell { color: var(--muted); font-size: 0.8rem; }
+    td.val-default-cell code { color: var(--muted); }
+    td.val-changed { background: rgba(201,162,39,0.07); }
+    td.rec-changed { border-left: 2px solid var(--warning); }
+    td.rec-default { color: var(--muted); }
+    .compare-legend { font-size: 0.8rem; color: var(--muted); margin: 8px 0 12px; }
+    .compare-legend span { margin-right: 16px; }
     @media print {
       body { background: #fff; color: #000; }
       .controls { display: none; }
@@ -136,24 +145,34 @@
     <p class="subtitle">
       Catalyst 9800 classic RRM and Catalyst Center 3.x AI-Enhanced RRM — settings, impacts, and Cisco best-practice alignment.
     </p>
+    <div class="callout" style="border-left-color: var(--warning); margin-top: 0;">
+      <strong>Scope &amp; disclaimer</strong>
+      Field-engineering reference — <em>not</em> BU-validated product documentation. Archetype values are starting points; final settings depend on <strong>physical design</strong> (antenna type, mounting height, survey, client density). TPC thresholds, min/max, and RxSOP are <strong>per band</strong> (2.4 / 5 / 6 GHz) and per RF profile. See <code>RRM-Settings-Source-References.docx</code> for Cisco document citations.
+    </div>
     <p class="subtitle" style="font-size:0.8rem;">
-      Sources: C9800 Config Guide BP (17.3.x) · WLC RF Management BP · CX Large Public Networks · AI-Enhanced RRM Deployment Guide
+      Sources: C9800 Config Guide (17.12.x RRM) · CX Large Public Networks · C9800 Best Practices · AI-Enhanced RRM DG · RRM White Paper
     </p>
 
     <div class="controls">
       <div>
         <label for="viewSelect">View</label><br />
         <select id="viewSelect">
-          <option value="prompt">AI Show-Tech Analysis Prompt</option>
           <option value="deployment">Deployment Profiles</option>
           <option value="modes">Classic vs AI Matrix</option>
           <option value="compare">BP Comparison</option>
           <option value="9800">9800 Classic RRM</option>
           <option value="ai">Catalyst Center AI RRM</option>
           <option value="cli">CLI Reference</option>
+          <option value="prompt">AI Show-Tech Analysis Prompt</option>
         </select>
       </div>
-      <div id="deploymentControl">
+      <div id="promptProfileControl" style="display:none;">
+        <label for="promptProfileSelect">Analyze as profile</label><br />
+        <select id="promptProfileSelect">
+          <option value="auto">Auto-detect (all archetypes)</option>
+        </select>
+      </div>
+      <div id="deploymentControl" style="display:none;">
         <label for="deploymentSelect">Deployment</label><br />
         <select id="deploymentSelect"></select>
       </div>
@@ -165,6 +184,7 @@
       <div class="callout">
         <strong>How to read impact columns</strong>
         Each setting lists <strong>positive</strong> and <strong>negative</strong> impacts for the <em>recommended change direction</em> in that deployment profile.
+        The <strong>C9800 Default</strong> column shows factory values; <span class="badge chg-tag">≠ Default</span> marks recommendations that differ.
         Tradeoffs are intentional — no single value is optimal for every environment.
       </div>
       <div class="callout">
@@ -174,7 +194,7 @@
     </div>
 
     <!-- AI PROMPT -->
-    <div id="sec-prompt" class="section active">
+    <div id="sec-prompt" class="section">
       <h2>AI Show-Tech Analysis Prompt</h2>
       <p>Copy the prompt below, paste it into your AI assistant (Cursor, ChatGPT, etc.), then attach or paste the output of <code>show tech-support wireless</code> (or key sections listed in the prompt).</p>
 
@@ -182,6 +202,7 @@
         <div class="card-header">How to use</div>
         <div class="card-body">
           <ol class="prompt-steps">
+            <li>Select an <strong>Analyze as profile</strong> target (e.g. Stadium) — the prompt updates with that profile's Cisco best practices.</li>
             <li>On the WLC: <code>show tech-support wireless</code> → save to a text file (or capture PuTTY log).</li>
             <li>Click <strong>Copy prompt</strong> below.</li>
             <li>Paste the prompt into your AI tool, then paste the show-tech content <em>after</em> the prompt (or attach the file).</li>
@@ -194,6 +215,7 @@
 
       <button type="button" class="btn-copy" id="copyPromptBtn">Copy prompt</button>
       <span class="pill ok" id="copyPromptStatus" style="display:none;">Copied to clipboard</span>
+      <span class="pill info" id="promptProfileBadge" style="margin-left:8px;"></span>
 
       <textarea id="aiPromptText" readonly spellcheck="false"></textarea>
 
@@ -216,18 +238,29 @@
     </div>
 
     <!-- DEPLOYMENT PROFILES -->
-    <div id="sec-deployment" class="section">
+    <div id="sec-deployment" class="section active">
+      <div class="callout">
+        <strong>Per-band settings</strong>
+        TPC threshold, min/max, RxSOP, and DCA interval are configured <strong>per radio band</strong> (<code>ap dot11 24ghz</code>, <code>5ghz</code>, <code>6ghz</code>). Values in profiles often show 5 GHz examples — derive 2.4 and 6 GHz from RF design, not by copying one number.
+      </div>
       <div id="profileContent"></div>
-      <h2>Four-way deployment comparison</h2>
+      <h2>Deployment profile comparison</h2>
+      <p class="compare-legend">
+        <span><span class="badge chg-tag">≠ Default</span> differs from C9800 factory default</span>
+        <span>Muted cells match factory default for that setting</span>
+      </p>
       <div class="table-scroll">
         <table id="fourWayTable">
           <thead>
             <tr>
               <th>Setting</th>
+              <th>C9800 Default</th>
               <th>Enterprise Campus</th>
               <th>Multi-Tenant</th>
               <th>NYC Downtown</th>
               <th>Atlanta Downtown</th>
+              <th>Dorm / Residence</th>
+              <th>Stadium HD</th>
             </tr>
           </thead>
           <tbody></tbody>
@@ -380,7 +413,7 @@
   </div>
 
   <script>
-    const AI_ANALYSIS_PROMPT = `You are a senior Cisco wireless engineer analyzing a Catalyst 9800 show-tech-support wireless capture. Produce a site-specific RRM recommendations document using the framework below (aligned to Cisco C9800 RRM BP, WLC RF Management BP, CX Large Public Networks Design Guide, and Catalyst Center AI-Enhanced RRM Deployment Guide).
+    const AI_PROMPT_HEAD = `You are a senior Cisco wireless engineer analyzing a Catalyst 9800 show-tech-support wireless capture. Produce a site-specific RRM recommendations document using the framework below (aligned to Cisco C9800 RRM BP, WLC RF Management BP, CX Large Public Networks Design Guide, and Catalyst Center AI-Enhanced RRM Deployment Guide).
 
 ## SECURITY
 - Do NOT reproduce passwords, PSKs, RADIUS/TACACS secrets, private keys, or tokens from the show-tech.
@@ -401,15 +434,20 @@ State which mode applies and where each class of change must be made (WLC vs Cat
 
 ## STEP 2 — Inventory
 Extract: hostname, model, IOS-XE version, license tier, Catalyst Center/network-assurance URL, AP count/model, FlexConnect vs local, countries, RF group name/leader, RF tags per site (show ap tag summary), single vs multiple geographies on one WLC.
+`;
 
-## STEP 3 — Map sites to deployment archetype
+    const AI_PROMPT_AUTO_STEP3 = `## STEP 3 — Map sites to deployment archetype
 Assign each site one primary profile (note if mixed):
 1. Carpeted Office — Enterprise Campus (owned building, low foreign RF)
 2. Carpeted Office — Multi-Tenant Building (shared high-rise, high foreign RF)
 3. Downtown — New York City (ultra-dense, foreign AP avoidance OFF, 20 MHz, ED-RRM off)
 4. Downtown — Atlanta (tower RF, foreign AP off, ED-RRM low only, 20–40 MHz)
+5. Dorm / Residence Hall (university housing — high client density, 20 MHz, RxSOP custom, CHD tuned — C9800 RF Profile HD guidance)
+6. Stadium — High Density Venue (CX Large Public Networks — CHD off, ED-RRM off, survey-led channels/power for directional antennas, RxSOP per band)
+`;
 
-## STEP 4 — Analyze these RRM areas (current vs recommended per site)
+    const AI_PROMPT_ANALYZE = `## STEP 4 — Analyze these RRM areas (current vs recommended per site)
+Flag each recommended value that differs from C9800 factory default (e.g. DCA interval 10 min, Avoid Foreign AP enabled, CHD enabled, ED-RRM enabled, RxSOP auto, TPC max 30 dBm).
 
 ### DCA
 Interval (target 4–8 hr, not 10 min), anchor time, sensitivity (Medium campus / Low multi-tenant & NYC), Avoid Foreign AP (global AND per RF profile — disable multi-tenant/NYC), channel width/DBS (20 MHz dense / 40 MHz owned), aggressive on startup, 6 GHz DCA interval alignment.
@@ -418,18 +456,35 @@ Interval (target 4–8 hr, not 10 min), anchor time, sensitivity (Medium campus 
 Mode, interval (align with DCA — prefer 3600s vs 600s), threshold, min/max (global AND RF profile max — flag max 30 dBm), manual power overrides (APs without TPC asterisk), power outliers.
 
 ### CHD
-Enabled/disabled, data/voice RSSI threshold, min failed clients before power increase (3 default; 5–8 dense), exception %. Flag if CHD likely caused high power.
+Enabled/disabled, data/voice RSSI threshold, min failed clients before power increase (3 default; 5–8 dense), exception %. Flag if CHD likely caused high power. **Disable CHD for stadium / large public HD per Cisco BP.**
 
 ### ED-RRM / CleanAir
-Enabled, sensitivity, rogue contribution. Recommend off for multi-tenant/NYC; Low only for Atlanta/enterprise if needed.
+Enabled, sensitivity, rogue contribution. Recommend off for multi-tenant/NYC/stadium/dorm peak; Low only for Atlanta/enterprise if needed.
 
 ### Client Network Preference & FRA guardrails
 client-network-preference (default / 5ghz / 6ghz), client-aware-fra client-select % (50% default — raise before 2.4→5G in dense RF), client-reset count (clients before FRA band reset), client-reset-util.
 
 ### Adjunct (not RRM algorithm but affects outcomes)
 Band select per WLAN, client steering, mandatory data rates, RxSOP, SSID count, RF group isolation per geography.
+`;
 
-## STEP 5 — Operational outliers
+    const AI_PROMPT_ANALYZE_PROFILE = `## STEP 4 — Analyze show-tech against STEP 3 targets
+For **each setting listed in STEP 3**, extract the **current value** from running-config and operational show commands. Report in tables:
+
+| Setting | Current (show-tech) | Target (profile) | ≠ C9800 Default | Gap | Positive impact | Tradeoff |
+
+Also verify cross-cutting hygiene even if not repeated above:
+- RF profile-level \`channel foreign\` (global AND per-profile stanzas)
+- RF profile \`tx-power max\` (flag factory 30 dBm if uncapped)
+- TPC update interval vs DCA interval (align — prefer 3600s TPC with 4–8 hr DCA)
+- 6 GHz DCA interval if 6 GHz is deployed
+- Manual tx-power overrides (APs without TPC asterisk in summary)
+- Per-AP outliers in \`show ap dot11 {band} summary\` (power, width, admin-down radios)
+
+Prioritize gaps where current config **contradicts the profile-specific rules** in STEP 3.
+`;
+
+    const AI_PROMPT_TAIL = `## STEP 5 — Operational outliers
 From show ap dot11 {band} summary: list APs with abnormal tx power, width mismatch, admin-down radios, CHD-driven max power. Prioritize fixes.
 
 ## STEP 6 — Deliverable format
@@ -442,7 +497,7 @@ Columns: Priority (Critical/High/Medium/Low), Finding, Evidence (command/output)
 ### Global RRM — current vs recommended (2.4 / 5 / 6 GHz)
 
 ### Per-site recommendations
-For each site: archetype, AP count, key settings table with Positive impact and Negative impact/tradeoff for each recommended change.
+For each site: archetype, AP count, key settings table with Positive impact and Negative impact/tradeoff for each recommended change. Mark each row **≠ Default** when the recommendation differs from C9800 factory default.
 
 ### RF tag / profile strategy
 If one RF profile serves multiple archetypes, recommend split profiles and RF groups per geography.
@@ -466,6 +521,47 @@ Commands: show ap dot11 5ghz group, channel, summary, tag summary, auto-rf cover
 ---
 PASTE SHOW TECH-SUPPORT WIRELESS OUTPUT BELOW THIS LINE:
 `;
+
+    const PROFILE_PROMPT_RULES = {
+      "enterprise-campus": [
+        "Avoid Foreign AP may remain ENABLED — customer owns the RF domain.",
+        "40 MHz on 5 GHz is acceptable on non-dense floors; use 20 MHz on dense floors.",
+        "ED-RRM Enabled/Medium is acceptable; FRA on XOR APs per Cisco BP.",
+        "DCA interval should be 4 hr (not factory 10 min); anchor time off-peak."
+      ],
+      "multi-tenant": [
+        "Avoid Foreign AP must be DISABLED (global AND per RF profile).",
+        "ED-RRM and rogue contribution must be OFF — neighbor BSSIDs cause churn.",
+        "20 MHz fixed on 5 GHz; DBS and FRA OFF.",
+        "Raise CHD min failed clients to 5–8; custom RxSOP ~-76 dBm on 5 GHz."
+      ],
+      "nyc-downtown": [
+        "Treat as ultra-dense: Avoid Foreign AP OFF, ED-RRM OFF, 20 MHz fixed, no DBS.",
+        "Consider DCA Freeze after convergence; sensitivity Low mandatory.",
+        "TPC caps 2–10 dBm; threshold -75 to -78 dBm; RxSOP -78 dBm.",
+        "Client network preference 5GHz; FRA client-select 60%+ and client-reset 10+."
+      ],
+      "atlanta-downtown": [
+        "Avoid Foreign AP OFF on Peachtree tower floors.",
+        "ED-RRM Low sensitivity only (not Medium); rogue contribution OFF.",
+        "20 MHz default on towers; 40 MHz only on isolated/perimeter floors.",
+        "Split AI RF profiles if towers vs perimeter differ."
+      ],
+      "dorm-residence": [
+        "University HD per C9800 RF Profile guide: 20 MHz fixed, custom RxSOP, aggressive band steering.",
+        "ED-RRM OFF during peak occupancy; CHD ON with min failed clients 5–8.",
+        "Client network preference 5GHz; FRA OFF; site tag per building/wing.",
+        "AI busy hour should match evening peak (6 PM – 2 AM), not business hours."
+      ],
+      "stadium-hd": [
+        "**CHD must be DISABLED** globally — CX Large Public Networks Design Guide.",
+        "**ED-RRM must be DISABLED** in busy high-density public venues — CX guide.",
+        "**Directional / stadium antennas (C9104):** Tx power and channels come from RF survey — typically narrow TPC min/max range or fixed power; do NOT rely on auto DCA convergence in empty bowl.",
+        "Prefer **engineered/manual channel plan** validated under load; freeze only a plan you have verified — not “let RRM converge then freeze.”",
+        "20 MHz fixed; FRA off; RxSOP tuned per antenna coverage boundary.",
+        "Site tags: **controller scale (WNCD)** only — not an RRM knob. On 17.12+ consider RF-based automatic AP load balancing; do not use default-site-tag at scale."
+      ]
+    };
 
     const PROFILES = [
       {
@@ -607,27 +703,133 @@ PASTE SHOW TECH-SUPPORT WIRELESS OUTPUT BELOW THIS LINE:
         ],
         aiRrm: { busyHour: "8 AM – 6 PM", sensitivity: "Medium or Low on Peachtree floors", services: "DCA + TPC + DBS (40 cap)", notes: "Split AI RF profiles: Low for towers, Medium for Perimeter." },
         cli: ["no ap dot11 5ghz rrm channel foreign","ap dot11 5ghz rrm channel dca sensitivity low","ap dot11 5ghz rrm channel dca interval 4","ap dot11 5ghz rrm channel dca anchor-time 1","ap dot11 5ghz rrm channel cleanair-event sensitivity low","no ap dot11 5ghz rrm channel cleanair-event rogue-contribution","ap dot11 5ghz rrm txpower min 4","ap dot11 5ghz rrm txpower max 12","ap dot11 5ghz rrm tpc-threshold -72"]
+      },
+      {
+        id: "dorm-residence",
+        label: "Dorm / Residence Hall",
+        subtitle: "University housing — high client density, 24/7 usage, concrete construction",
+        summary: "Cisco RF Profile guidance explicitly calls out university areas where users congregate (dorms, dining halls) as requiring manipulated data rates and power for cell density and CCI control. Treat like high-density enterprise: 20 MHz, custom RxSOP, aggressive band steering — but keep CHD enabled with raised min-failed-clients for corridor/room edge cases.",
+        density: "High", foreignRf: "Low–Medium",
+        traits: [
+          "Very high clients per AP — laptops, phones, gaming; evening peak 6 PM–2 AM",
+          "Concrete walls and small rooms — coverage vs capacity tradeoff",
+          "Often single-tenant building but RF profile should differ from classroom/campus",
+          "C9800 Deployment Guide: separate RF characteristics for dorms vs classrooms"
+        ],
+        settings: [
+          ["DCA","Mode","Automatic","Standard scheduled optimization","Adapts within guardrails","Channel moves during study hours if interval short"],
+          ["DCA","Interval","4–6 hours","Cisco BP: increase from 10-min default","Stable plan during peak occupancy","Slow to fix new persistent interferer"],
+          ["DCA","Anchor Time","3–4 (3–4 AM)","Overnight when dorms quietest","Channel changes when fewest clients awake","Daytime RF issues wait for anchor"],
+          ["DCA","Sensitivity","Low (30 dB)","High density — ignore minor drift","Stable channels with many foreign clients on 2.4","Gradual interference may persist"],
+          ["DCA","Avoid Foreign AP","Enabled","Single-building dorm — usually safe","Avoids channels dominated by rogue BSSIDs","Churn if adjacent building WLANs bleed in"],
+          ["DCA","Channel Width (5 GHz)","20 MHz fixed","Cisco high-density / CX: 20 MHz reuse","Maximum channel reuse in dense housing","Lower per-AP throughput ceiling"],
+          ["TPC","Min / Max Power","3 / 10 dBm","Shrink cells for density","Less CCI in hallways and common areas","Edge rooms may need design validation"],
+          ["TPC","Power Threshold","-74 to -76 dBm","Tighter than campus default (-70)","Smaller cells → more capacity per floor","More roams; sticky clients in hallways"],
+          ["CHD","Coverage Hole Detection","Enabled","Cisco enterprise BP — on in owned RF","Fills real room/corridor gaps","False positives can raise power → CCI"],
+          ["CHD","Min failed clients","5–8","Raise from 3-client default","Ignores 1–2 weak clients in noisy dorm RF","Small real holes below threshold linger"],
+          ["ED-RRM","Event Driven RRM","Disabled","CX Large Public / busy HD: avoid ED-RRM","Predictable channels during peak study hours","No fast escape from microwave events"],
+          ["ED-RRM","Rogue Contribution","Disabled","Microwave/BT noise common in dorms","Fewer false ED triggers","No rogue-driven channel avoidance"],
+          ["DBS / FRA","DBS / FRA","Both off","Fixed 20 MHz; no FRA in HD","No surprise width or band-role changes","No FRA capacity boost on XOR APs"],
+          ["Client Pref.","Network Preference","5GHz","Offload congested 2.4 GHz","Dual-band clients use less crowded band","2.4-only IoT/game consoles may suffer"],
+          ["Client-Aware FRA","Client select %","60%","Above 50% default before 2.4→5G","Conversion only when 5 GHz proven","Delayed FRA benefit if clients stay on 2.4"],
+          ["Client-Aware FRA","Client reset count","8–10","Above 5-client default","Stable FRA in volatile dorm counts","Slower FRA recovery after band change"],
+          ["Data Rates","5 GHz mandatory","18 Mbps; disable 6 & 9 & 12","Cisco HD: shrink cell via rates","Smaller coverage footprint","Weak clients at room edge may drop"],
+          ["WLAN","Band Select","Enabled (not voice)","Cisco BP for data WLANs","Steers capable clients to 5 GHz","Association delay; some clients fail"],
+          ["WLAN","Client steering count","5+","Above 3-client default","Steer only when multiple clients justify move","Single-client weak spots won't trigger"],
+          ["RxSOP","Receiver threshold","Custom -78 dBm (5 GHz)","C9800 RF Profile HD RxSOP guidance","Ignores weak distant signals; smaller receive cell","May ignore valid weak client at room edge; set per band"]
+        ],
+        aiRrm: { busyHour: "6 PM – 2 AM (evening peak)", sensitivity: "Low", services: "DCA + TPC only; DBS max 20 MHz", notes: "Separate AI RF profile from classroom/campus tags. Match dorm peak hours, not business hours." },
+        cli: ["ap dot11 5ghz rrm channel dca interval 6","ap dot11 5ghz rrm channel dca anchor-time 3","ap dot11 5ghz rrm channel dca sensitivity low","ap dot11 5ghz rrm channel dca chan-width 20","no ap dot11 5ghz rrm channel cleanair-event","ap dot11 5ghz rrm txpower min 3","ap dot11 5ghz rrm txpower max 10","ap dot11 5ghz rrm tpc-threshold -75","ap dot11 5ghz rx-sop threshold -78","wireless client client-steering client-count 5"]
+      },
+      {
+        id: "stadium-hd",
+        label: "Stadium — High Density Venue",
+        subtitle: "Large public venue — bowl, concourse, event peak; CX Large Public Networks design",
+        summary: "Cisco CX Large Public Networks: disable CHD and ED-RRM; use custom RxSOP and TPC limits from RF survey. For directional/stadium antennas, power and channels are design outcomes — deterministic configuration over dynamic RRM. Site tags address WNCD controller scale, not RF optimization.",
+        density: "Very High", foreignRf: "Medium (event-dependent)",
+        traits: [
+          "10,000+ clients; extreme clients-per-AP during events",
+          "Directional/stadium antennas (C9104 etc.) — beams overlap by design; RRM omni assumptions do not apply",
+          "CX guide: deterministic config preferred; FRA not recommended for large public networks",
+          "Empty-venue calibration ≠ game-day RF — validate channel/power plan under load before events",
+          "Press/vendor areas may need dedicated channels — evaluate carefully (CX channel exclusion guidance)"
+        ],
+        settings: [
+          ["DCA","Mode","Manual / engineered plan (or Auto only after survey validation)","CX: RRM alternative to static config; directional venues need survey-led plan","Channel reuse matches design intent","Wrong plan if left fully automatic with stadium antennas"],
+          ["DCA","Interval","8 hr if Auto used; prefer fixed plan","Only if DCA remains enabled after validation","Limits moves between events","Not a substitute for manual design"],
+          ["DCA","Anchor Time","4–5 (4–5 AM)","Off-peak between events if DCA enabled","Changes when venue empty","—"],
+          ["DCA","Sensitivity","Low (30 dB)","If DCA enabled","Ignores transient event-day RF","—"],
+          ["DCA","Avoid Foreign AP","Disabled (evaluate press areas)","Foreign WLANs on event day — CX rogue guidance","Plan based on your APs","Co-channel with vendor SSIDs"],
+          ["DCA","Channel Width (5 GHz)","20 MHz fixed, no DBS","CX + BP: 20 MHz high-density","Maximum reuse in bowl/concourse","Throughput ceiling per radio"],
+          ["DCA","Aggressive on startup","Disabled","C9800 CG: startup mode 100 min — disable steady-state aggressive","No mass churn after reload","Slower greenfield convergence"],
+          ["TPC","Min / Max Power (per band)","From RF survey — often fixed or ≤3 dBm range","CX: directional antenna TPC min/max typically same or narrow range from survey","Power matches engineered cell boundaries","Overlapping C9104 beams — auto TPC can fight design"],
+          ["TPC","Power Threshold (2.4 / 5 / 6 GHz)","Per-band from survey — configure separately","C9800 CG: ap dot11 {24|5|6}ghz rrm tpc-threshold","Cell-edge target per band/propagation","Single copied value across bands is incorrect"],
+          ["CHD","Coverage Hole Detection","Disabled","CX: CHD must be disabled globally for large public networks","Prevents false power increases → CCI","Real gaps won't auto-heal — design must cover"],
+          ["ED-RRM","Event Driven RRM","Disabled","CX: do not use ED-RRM in busy/noisy HD environments","Stable channels during events","No rapid interferer escape"],
+          ["ED-RRM","Rogue Contribution","Disabled","CX: rogue avoidance unstable with many foreign BSSIDs","Fewer false ED triggers","—"],
+          ["DBS / FRA","DBS / FRA","Both off","CX: FRA not recommended; freeze if used during commissioning only","Predictable RF for events","—"],
+          ["Client Pref.","Network Preference","5GHz","Push clients off saturated 2.4","Critical in beacon-heavy bowl RF","Legacy 2.4-only devices poor experience"],
+          ["Data Rates","5 GHz mandatory","24 Mbps; disable 6–18","CX HD example for large-scale events","Smallest coverage footprint","Edge clients on weak RSSI struggle"],
+          ["WLAN","Band Select","Enabled; off voice/ticketing","CX / enterprise BP","Forces capable clients to 5 GHz","Association delay at gate entry"],
+          ["WLAN","SSID Count","1–2 SSIDs","Minimize beacon overhead","More airtime for data","Limited guest/press segmentation"],
+          ["RxSOP","Receiver threshold (per band)","Custom from survey (e.g. -78 to -82 dBm 5 GHz)","CX RxSOP section — defines receive cell boundary","Ignores weak foreign transmissions","Requires per-antenna coverage boundary knowledge"]
+        ],
+        aiRrm: { busyHour: "Match event window (e.g. 2 hr pre-game – end)", sensitivity: "Low", services: "Use with caution — validate Simulator; prefer engineered plan for bowl", notes: "AI does not replace stadium RF survey. Separate profiles: bowl vs concourse vs back-of-house. Do not auto-freeze unvalidated DCA output." },
+        cli: ["no ap dot11 5ghz rrm channel foreign","no ap dot11 5ghz rrm channel cleanair-event","no ap dot11 5ghz rrm coverage","ap dot11 5ghz rrm channel dca sensitivity low","ap dot11 5ghz rrm channel dca chan-width 20","no ap dot11 5ghz rrm channel dca startup","! Per-band — set from survey:","! ap dot11 24ghz rrm txpower min/max …","! ap dot11 5ghz rrm txpower min/max …","! ap dot11 5ghz rrm tpc-threshold …","! ap dot11 5ghz rx-sop threshold …"]
       }
     ];
 
-    const FOUR_WAY = [
-      ["DCA Interval","4 hr","4–6 hr","6–8 hr / Freeze","4 hr"],
-      ["DCA Sensitivity","Medium","Low","Low","Low (start)"],
-      ["Avoid Foreign AP","On","Off","Off","Off"],
-      ["ED-RRM","On / Med","Off","Off","On / Low"],
-      ["Rogue Contribution","On","Off","Off","Off"],
-      ["CHD","On","On (tuned)","On (tuned)","On"],
-      ["CHD min failed clients","3","5–8","5–8","3–5"],
-      ["5 GHz Width","20–40 MHz","20 MHz fixed","20 MHz fixed","20 MHz (40 isolated)"],
-      ["TPC Min / Max","5 / 14 dBm","4 / 11 dBm","2 / 10 dBm","4 / 12 dBm"],
-      ["TPC Threshold","-70 dBm","-73 dBm","-76 dBm","-72 dBm"],
-      ["RxSOP 5 GHz","Auto","Custom -76","Custom -78","Custom -77"],
-      ["Client Network Preference","default","5GHz (opt.)","5GHz","5GHz / default"],
-      ["FRA client-select %","50%","50–60%","60%+","50%"],
-      ["FRA client-reset count","5","8–10","10+","5–8"],
-      ["FRA","On (XOR)","Off","Off","Evaluate"],
-      ["AI Busy Sensitivity","Medium","Low","Low","Med / Low split"]
+    const DEPLOYMENT_COMPARE = [
+      ["DCA Interval","10 min","4 hr","4–6 hr","6–8 hr / Freeze","4 hr","4–6 hr","Engineered / 8 hr"],
+      ["DCA Sensitivity","Medium (15 dB)","Medium","Low","Low","Low (start)","Low","Low"],
+      ["Avoid Foreign AP","Enabled","On","Off","Off","Off","On","Off"],
+      ["ED-RRM","Enabled","On / Med","Off","Off","On / Low","Off","Off"],
+      ["Rogue Contribution","Enabled","On","Off","Off","Off","Off","Off"],
+      ["CHD","Enabled","On","On (tuned)","On (tuned)","On","On (tuned)","Off"],
+      ["CHD min failed clients","3","3","5–8","5–8","3–5","5–8","N/A"],
+      ["5 GHz Width","20 MHz","20–40 MHz","20 MHz fixed","20 MHz fixed","20 MHz (40 isolated)","20 MHz fixed","20 MHz fixed"],
+      ["TPC Min / Max","Unbounded / 30 dBm","5 / 14 dBm","4 / 11 dBm","2 / 10 dBm","4 / 12 dBm","3 / 10 dBm","Survey-based (per band)"],
+      ["TPC Threshold","-70 dBm (per band)","-70 dBm","-73 dBm","-76 dBm","-72 dBm","-75 dBm","Per band (survey)"],
+      ["RxSOP 5 GHz","Auto","Auto","Custom -76","Custom -78","Custom -77","Custom -78","Custom -80"],
+      ["Client Network Preference","default","default","5GHz (opt.)","5GHz","5GHz / default","5GHz","5GHz"],
+      ["FRA client-select %","50%","50%","50–60%","60%+","50%","60%","N/A"],
+      ["FRA client-reset count","5","5","8–10","10+","5–8","8–10","N/A"],
+      ["FRA","Disabled","On (XOR)","Off","Off","Evaluate","Off","Off"],
+      ["AI Busy Sensitivity","Medium","Medium","Low","Low","Med / Low split","Low","Low"]
     ];
+
+    const PROFILE_DEFAULTS = {
+      "DCA|Mode": "Automatic",
+      "DCA|Interval": "10 min",
+      "DCA|Anchor Time": "Not set",
+      "DCA|Sensitivity": "Medium (15 dB)",
+      "DCA|Avoid Foreign AP": "Enabled",
+      "DCA|Avoid Cisco AP Load": "Disabled",
+      "DCA|Channel Width (5 GHz)": "20 MHz",
+      "DCA|Channel Width": "20 MHz",
+      "DCA|Aggressive on startup": "Enabled",
+      "TPC|Version / Mode": "TPCv1, Automatic",
+      "TPC|Channel Aware (5 GHz)": "Disabled",
+      "TPC|Min / Max Power": "Unbounded / max 30 dBm",
+      "TPC|Min / Max": "Unbounded / max 30 dBm",
+      "TPC|Power Threshold": "-70 dBm",
+      "CHD|Coverage Hole Detection": "Enabled",
+      "CHD|Enable": "Enabled",
+      "CHD|Min failed clients": "3 clients",
+      "ED-RRM|Event Driven RRM": "Enabled, Medium",
+      "ED-RRM|Rogue Contribution": "Enabled (configurable)",
+      "CleanAir|Detection": "Enabled",
+      "DBS / FRA|DBS / FRA": "Varies",
+      "Client Pref.|Network Preference": "default",
+      "Client-Aware FRA|Client select %": "50%",
+      "Client-Aware FRA|Client reset count": "5 clients",
+      "Data Rates|5 GHz mandatory": "12 Mbps mandatory",
+      "WLAN|Band Select": "Varies per WLAN",
+      "WLAN|SSID Count": "Varies",
+      "WLAN|Client steering count": "3",
+      "RxSOP|Receiver threshold": "Auto",
+      "Site Tag|WNCD grouping": "default-site-tag"
+    };
 
     const MODE_MATRIX = [
       ["DCA (channel, interval, sensitivity, foreign AP, anchor)","<span class='badge tier-ai'>AI service</span>","Full WLC control — Configuration → RRM → DCA","AI runs DCA if enabled in AI RF Profile; WLC global DCA CLI overridden for subscribed APs","Classic: WLC GUI/CLI. AI: CatC AI RF Profile → DCA + busy hour","<code>show ap dot11 5ghz channel</code>; CatC RRM Changes"],
@@ -696,7 +898,7 @@ PASTE SHOW TECH-SUPPORT WIRELESS OUTPUT BELOW THIS LINE:
         {f:"TPC",s:"Version",loc:"RRM > TPC / RF Profile",def:"TPCv1",rec:"TPCv1 + Channel Aware (5 GHz)",pos:"TPCv1 lowers power for capacity",neg:"Edge clients may see lower SNR",bp:"TPCv1 + Ch-Aware 5G",m:"align"},
         {f:"TPC",s:"Update Interval",loc:"RRM > TPC",def:"600 sec",rec:"3600 sec (align with DCA philosophy)",pos:"Stable transmit power",neg:"Slow to fix real power imbalance",bp:"Don't run 10-min TPC with 8-hr DCA",m:"caution"},
         {f:"TPC",s:"Min / Max",loc:"RRM > TPC + RF Profile",def:"Unbounded / max 30",rec:"Set per design (e.g. 4–14 dBm)",pos:"Prevents client-magnet APs at max power",neg:"Max too low → coverage holes",bp:"Always set per design",m:"align"},
-        {f:"TPC",s:"Power Threshold",loc:"RRM > TPC",def:"-70 dBm",rec:"Dense: -72 to -78 dBm",pos:"Smaller cells → better capacity",neg:"More client roams",bp:"Dense: -75 to -80",m:"caution"}
+        {f:"TPC",s:"Power Threshold",loc:"RRM > TPC (per band: 24 / 5 / 6 GHz)",def:"-70 dBm (each band)",rec:"From survey; dense 5 GHz often -72 to -80",pos:"Smaller cells → better capacity",neg:"More client roams; 2.4/5/6 differ",bp:"CX: directional = survey outcome",m:"caution"}
       ],
       "Coverage Hole Detection": [
         {f:"CHD",s:"Enable",loc:"RRM > Coverage",def:"Enabled",rec:"On enterprise; tune or off stadium",pos:"Auto-raises power for validated holes",neg:"False positives raise power → more CCI",bp:"Enterprise on; stadium off",m:"caution"},
@@ -767,6 +969,171 @@ PASTE SHOW TECH-SUPPORT WIRELESS OUTPUT BELOW THIS LINE:
       return `<span class="badge ${m}">${labels[m] || m}</span>`;
     }
 
+    function profileDefaultKey(cat, setting) {
+      return `${cat}|${setting}`;
+    }
+
+    function getProfileDefault(cat, setting) {
+      return PROFILE_DEFAULTS[profileDefaultKey(cat, setting)] || "—";
+    }
+
+    function matchesC9800Default(compareKey, value) {
+      const v = String(value).toLowerCase().trim();
+      if (!v || v === "n/a" || v === "—") return true;
+      switch (compareKey) {
+        case "DCA Interval":
+          return v.includes("10 min");
+        case "DCA Sensitivity":
+          return v.includes("medium") && !v.includes("low");
+        case "Avoid Foreign AP":
+          return v === "on" || v === "enabled" || v.startsWith("on ");
+        case "ED-RRM":
+          return (v.includes("on") || v.includes("enabled")) && !v.includes("off");
+        case "Rogue Contribution":
+          return v === "on" || v === "enabled" || v.includes("enabled");
+        case "CHD":
+          return v === "on" || v.startsWith("on ") || v === "enabled";
+        case "CHD min failed clients":
+          return v === "3" || v.startsWith("3 ") || v === "3 (default)";
+        case "5 GHz Width":
+          return v === "20 mhz" || (v.includes("20 mhz") && !v.includes("40") && !v.includes("fixed"));
+        case "TPC Min / Max":
+          return v.includes("unbounded") || v.includes("30 dbm") || v.includes("/ 30");
+        case "TPC Threshold":
+          return v === "-70 dbm" || v.includes("-70 dbm");
+        case "RxSOP 5 GHz":
+          return v === "auto";
+        case "Client Network Preference":
+          return v === "default" || v.startsWith("default ");
+        case "FRA client-select %":
+          return v === "50%" || v.startsWith("50%");
+        case "FRA client-reset count":
+          return v === "5" || v.startsWith("5 ") || v === "5 clients";
+        case "FRA":
+          return v === "disabled" || v === "off" || v === "n/a";
+        case "AI Busy Sensitivity":
+          return v === "medium";
+        default:
+          return false;
+      }
+    }
+
+    function profileRecMatchesDefault(cat, setting, recommended) {
+      const def = getProfileDefault(cat, setting);
+      if (def === "—" || def === "Varies" || def === "Varies per WLAN") return null;
+      const r = String(recommended).toLowerCase();
+      const d = String(def).toLowerCase();
+      if (r.includes("(default)") && d !== "—") return true;
+      if (r === d) return true;
+      const cmpKey = setting === "Channel Width (5 GHz)" ? "5 GHz Width"
+        : setting === "Min / Max Power" ? "TPC Min / Max"
+        : setting === "Network Preference" ? "Client Network Preference"
+        : setting === "Client select %" ? "FRA client-select %"
+        : setting === "Client reset count" ? "FRA client-reset count"
+        : setting === "Receiver threshold" ? "RxSOP 5 GHz"
+        : setting === "Coverage Hole Detection" ? "CHD"
+        : setting === "Event Driven RRM" ? "ED-RRM"
+        : setting;
+      if (["DCA Interval","DCA Sensitivity","TPC Threshold","RxSOP 5 GHz","Client Network Preference","FRA client-select %","FRA client-reset count","CHD min failed clients"].includes(cmpKey)) {
+        return matchesC9800Default(cmpKey, recommended);
+      }
+      if (cmpKey === "Avoid Foreign AP") return matchesC9800Default("Avoid Foreign AP", recommended.includes("Disabled") ? "Off" : recommended.includes("Enabled") ? "On" : recommended);
+      if (cmpKey === "ED-RRM") return matchesC9800Default("ED-RRM", recommended.includes("Disabled") ? "Off" : recommended);
+      if (cmpKey === "CHD") return matchesC9800Default("CHD", recommended.includes("Disabled") ? "Off" : "On");
+      if (d.includes("enabled") && (r.startsWith("enabled") || r.startsWith("on"))) return true;
+      if (d.includes("disabled") && r.includes("disabled")) return true;
+      if (d.includes("automatic") && r.includes("automatic")) return true;
+      return false;
+    }
+
+    function changeTag(changed) {
+      if (changed !== true) return "";
+      return ` <span class="badge chg-tag" title="Differs from C9800 factory default">≠ Default</span>`;
+    }
+
+    function renderCompareCell(setting, value) {
+      const changed = !matchesC9800Default(setting, value);
+      const cls = changed ? "val-changed" : "";
+      const tag = changed ? ` <span class="badge chg-tag">≠</span>` : "";
+      return `<td class="${cls}">${value}${tag}</td>`;
+    }
+
+    function buildProfilePromptSection(p) {
+      const rules = (PROFILE_PROMPT_RULES[p.id] || []).map(r => `- ${r}`).join("\n");
+      const settingsBlock = p.settings.map(r => {
+        const def = getProfileDefault(r[0], r[1]);
+        const differs = profileRecMatchesDefault(r[0], r[1], r[2]) === false;
+        const defTag = differs ? " [≠ Default]" : (def !== "—" ? " [matches factory default]" : "");
+        return `### ${r[0]} — ${r[1]}
+- **C9800 factory default:** ${def}
+- **Target for this profile:** ${r[2]}${defTag}
+- **Rationale:** ${r[3]}
+- **Positive impact:** ${r[4] || "—"}
+- **Negative tradeoff:** ${r[5] || "—"}`;
+      }).join("\n\n");
+
+      return `## STEP 3 — Target deployment profile (customer-selected)
+The customer selected: **${p.label}**
+${p.subtitle}
+
+${p.summary}
+
+**Density:** ${p.density} · **Foreign RF:** ${p.foreignRf}
+
+Evaluate the show-tech against this archetype. Unless the user notes a mixed environment, treat the deployment as this profile. If show-tech shows multiple site types on one WLC, flag exceptions per site tag but keep this profile as the primary benchmark.
+
+### Environment traits
+${p.traits.map(t => `- ${t}`).join("\n")}
+
+### Profile-specific rules (mandatory)
+${rules}
+
+### Target settings — compare show-tech current values to each row below
+${settingsBlock}
+
+### Catalyst Center AI-Enhanced RRM (if enrolled)
+- **Busy hour:** ${p.aiRrm.busyHour}
+- **Busy hour sensitivity:** ${p.aiRrm.sensitivity}
+- **Services:** ${p.aiRrm.services}
+- **Notes:** ${p.aiRrm.notes}
+
+### Reference CLI for this profile
+\`\`\`
+${p.cli.join("\n")}
+\`\`\`
+`;
+    }
+
+    function buildAiPrompt(profileId) {
+      if (profileId === "auto") {
+        return AI_PROMPT_HEAD + AI_PROMPT_AUTO_STEP3 + AI_PROMPT_ANALYZE + AI_PROMPT_TAIL;
+      }
+      const p = PROFILES.find(x => x.id === profileId);
+      if (!p) return buildAiPrompt("auto");
+      return AI_PROMPT_HEAD + buildProfilePromptSection(p) + AI_PROMPT_ANALYZE_PROFILE + AI_PROMPT_TAIL;
+    }
+
+    function updateAiPromptDisplay(profileId) {
+      const text = buildAiPrompt(profileId);
+      document.getElementById("aiPromptText").value = text;
+      const badge = document.getElementById("promptProfileBadge");
+      if (profileId === "auto") {
+        badge.textContent = "Mode: auto-detect all archetypes";
+      } else {
+        const p = PROFILES.find(x => x.id === profileId);
+        badge.textContent = p ? `Mode: ${p.label}` : "";
+      }
+    }
+
+    function setControlsForView(view) {
+      document.getElementById("promptProfileControl").style.display =
+        (view === "prompt") ? "block" : "none";
+      document.getElementById("deploymentControl").style.display =
+        (view === "deployment") ? "block" : "none";
+      document.getElementById("guideCallouts").style.display =
+        (view === "prompt") ? "none" : "block";
+    }
+
     function renderProfile(id) {
       const p = PROFILES.find(x => x.id === id);
       if (!p) return;
@@ -784,8 +1151,13 @@ PASTE SHOW TECH-SUPPORT WIRELESS OUTPUT BELOW THIS LINE:
             <ul class="traits">${p.traits.map(t => `<li>${t}</li>`).join("")}</ul>
             <h3>Recommended settings</h3>
             <div class="table-scroll"><table>
-              <thead><tr><th>Category</th><th>Setting</th><th>Recommended</th><th>Rationale</th><th>Positive impact</th><th>Negative impact / tradeoff</th></tr></thead>
-              <tbody>${p.settings.map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td><td><strong>${r[2]}</strong></td><td>${r[3]}</td><td class="impact-pos">${r[4]||"—"}</td><td class="impact-neg">${r[5]||"—"}</td></tr>`).join("")}</tbody>
+              <thead><tr><th>Category</th><th>Setting</th><th>C9800 Default</th><th>Recommended</th><th>Rationale</th><th>Positive impact</th><th>Negative impact / tradeoff</th></tr></thead>
+              <tbody>${p.settings.map(r => {
+                const def = getProfileDefault(r[0], r[1]);
+                const isDef = profileRecMatchesDefault(r[0], r[1], r[2]);
+                const recCls = isDef === true ? "rec-default" : (isDef === false ? "rec-changed" : "");
+                return `<tr><td>${r[0]}</td><td>${r[1]}</td><td class="val-default-cell"><code>${def}</code></td><td class="${recCls}"><strong>${r[2]}</strong>${changeTag(isDef === false)}</td><td>${r[3]}</td><td class="impact-pos">${r[4]||"—"}</td><td class="impact-neg">${r[5]||"—"}</td></tr>`;
+              }).join("")}</tbody>
             </table></div>
             <h3>Catalyst Center AI-Enhanced RRM</h3>
             <table>
@@ -824,14 +1196,21 @@ PASTE SHOW TECH-SUPPORT WIRELESS OUTPUT BELOW THIS LINE:
 
     function init() {
       const depSel = document.getElementById("deploymentSelect");
+      const promptSel = document.getElementById("promptProfileSelect");
       PROFILES.forEach(p => {
         const o = document.createElement("option");
         o.value = p.id; o.textContent = p.label;
         depSel.appendChild(o);
+        const po = document.createElement("option");
+        po.value = p.id; po.textContent = p.label;
+        promptSel.appendChild(po);
       });
 
       document.getElementById("fourWayTable").querySelector("tbody").innerHTML =
-        FOUR_WAY.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join("")}</tr>`).join("");
+        DEPLOYMENT_COMPARE.map(row => {
+          const [setting, def, ...vals] = row;
+          return `<tr><td>${setting}</td><td class="val-default-cell"><code>${def}</code></td>${vals.map(v => renderCompareCell(setting, v)).join("")}</tr>`;
+        }).join("");
 
       document.getElementById("bpCompareTable").querySelector("tbody").innerHTML =
         BP_COMPARE.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join("")}</tr>`).join("");
@@ -847,14 +1226,15 @@ PASTE SHOW TECH-SUPPORT WIRELESS OUTPUT BELOW THIS LINE:
       render9800();
       renderAi();
       renderProfile("enterprise-campus");
-
-      document.getElementById("aiPromptText").value = AI_ANALYSIS_PROMPT;
+      updateAiPromptDisplay("auto");
+      setControlsForView("deployment");
 
       document.getElementById("copyPromptBtn").addEventListener("click", async () => {
         const btn = document.getElementById("copyPromptBtn");
         const status = document.getElementById("copyPromptStatus");
+        const text = document.getElementById("aiPromptText").value;
         try {
-          await navigator.clipboard.writeText(AI_ANALYSIS_PROMPT);
+          await navigator.clipboard.writeText(text);
           btn.classList.add("copied");
           btn.textContent = "Copied!";
           status.style.display = "inline-block";
@@ -864,25 +1244,23 @@ PASTE SHOW TECH-SUPPORT WIRELESS OUTPUT BELOW THIS LINE:
             status.style.display = "none";
           }, 2500);
         } catch (e) {
-          document.getElementById("aiPromptText").select();
+          const ta = document.getElementById("aiPromptText");
+          ta.select();
           document.execCommand("copy");
           btn.textContent = "Copied (fallback)";
         }
       });
 
+      promptSel.addEventListener("change", e => updateAiPromptDisplay(e.target.value));
+
       document.getElementById("viewSelect").addEventListener("change", e => {
         document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
         const v = e.target.value;
         document.getElementById("sec-" + v).classList.add("active");
-        document.getElementById("deploymentControl").style.display =
-          (v === "deployment") ? "block" : "none";
-        document.getElementById("guideCallouts").style.display =
-          (v === "prompt") ? "none" : "block";
+        setControlsForView(v);
       });
 
       depSel.addEventListener("change", e => renderProfile(e.target.value));
-
-      document.getElementById("guideCallouts").style.display = "none";
     }
 
     init();
